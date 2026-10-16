@@ -1,0 +1,1029 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Market Watcher</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root {
+  --bg: var(--tg-theme-secondary-bg-color, #efeff4);
+  --surface: var(--tg-theme-section-bg-color, var(--tg-theme-bg-color, #ffffff));
+  --raised: var(--tg-theme-bg-color, #f6f6f8);
+  --line: var(--tg-theme-section-separator-color, rgba(128, 128, 140, 0.28));
+  --text: var(--tg-theme-text-color, #1b1b1f);
+  --hint: var(--tg-theme-hint-color, #85858f);
+  --accent: var(--tg-theme-button-color, #2f7cf6);
+  --accent-ink: var(--tg-theme-button-text-color, #ffffff);
+  --link: var(--tg-theme-link-color, #2f7cf6);
+  --danger: var(--tg-theme-destructive-text-color, #e0463e);
+  --heading: var(--tg-theme-section-header-text-color, var(--tg-theme-hint-color, #6d6d78));
+  --tag: var(--tg-theme-button-color, #2f7cf6);
+  --tag-ink: var(--tg-theme-button-text-color, #ffffff);
+  --radius-group: 14px;
+  --radius-field: 9px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.4 -apple-system, "SF Pro Text", Roboto, "Segoe UI", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: 96px;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+.top {
+  position: sticky; top: 0; z-index: 5;
+  background: var(--bg);
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.title-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.app-name { font-size: 17px; font-weight: 650; letter-spacing: -0.01em; }
+.dirty-note { font-size: 13px; color: var(--accent); font-variant-numeric: tabular-nums; }
+.tabs { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--raised); border-radius: 11px; padding: 3px; gap: 3px; }
+.tab { border: 0; background: transparent; border-radius: 8px; padding: 7px 4px; font-size: 14px; color: var(--hint); cursor: pointer; }
+.tab[aria-selected="true"] { background: var(--surface); color: var(--text); font-weight: 600; }
+main { padding: 4px 16px 24px; max-width: 640px; margin: 0 auto; }
+.group-title { margin: 22px 4px 7px; font-size: 13px; font-weight: 600; color: var(--heading); display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.group { background: var(--surface); border-radius: var(--radius-group); overflow: hidden; }
+.row { padding: 11px 14px; }
+.row + .row { border-top: 1px solid var(--line); }
+.row-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.label { font-size: 15px; }
+.hint { font-size: 12.5px; color: var(--hint); margin-top: 3px; }
+.field-label { display: block; font-size: 13px; color: var(--hint); margin-bottom: 5px; }
+.input, .select, .textarea {
+  width: 100%; background: var(--raised); border: 1px solid var(--line); border-radius: var(--radius-field);
+  padding: 9px 10px; outline: none; -webkit-appearance: none; appearance: none;
+}
+.textarea { resize: vertical; min-height: 84px; line-height: 1.45; }
+.textarea.url { min-height: 64px; font-size: 13px; word-break: break-all; }
+.input:focus, .select:focus, .textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.input.invalid, .textarea.invalid { border-color: var(--danger); box-shadow: 0 0 0 1px var(--danger); }
+.input.short { width: 92px; text-align: right; font-variant-numeric: tabular-nums; }
+.pair { display: flex; gap: 10px; }
+.pair > label { flex: 1 1 0; }
+.suffix { display: inline-flex; align-items: center; gap: 6px; color: var(--hint); font-size: 14px; }
+.suffix .input { color: var(--text); font-size: 15px; }
+.name-input { font-weight: 600; }
+.search-name { font-weight: 650; font-size: 16px; }
+.text-button { border: 0; background: none; color: var(--link); padding: 0; cursor: pointer; font-size: 15px; }
+.text-button.small { font-size: 13px; }
+.text-button.danger { color: var(--danger); }
+.text-button:disabled { color: var(--hint); cursor: default; }
+.add-row { padding: 12px 14px; }
+.switch { position: relative; width: 50px; height: 30px; flex: 0 0 auto; }
+.switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.switch span { position: absolute; inset: 0; border-radius: 15px; background: rgba(128, 128, 140, 0.4); transition: background 0.15s; pointer-events: none; }
+.switch span::after { content: ""; position: absolute; left: 3px; top: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); transition: transform 0.15s; }
+.switch input:checked + span { background: var(--accent); }
+.switch input:checked + span::after { transform: translateX(20px); }
+.switch input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 0 2px; }
+.chip { flex: 0 0 auto; border: 1px solid var(--line); background: var(--surface); border-radius: 18px; padding: 6px 13px; cursor: pointer; font-size: 14px; }
+.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.chip.new { color: var(--link); border-style: dashed; }
+/* Model limits look like price tags: the one bold element of the page. */
+.tag-row { display: flex; align-items: center; gap: 10px; }
+.tag {
+  position: relative; flex: 1 1 auto; min-width: 0; height: 42px; margin-left: 13px;
+  background: var(--tag); color: var(--tag-ink); border-radius: 0 9px 9px 0;
+  display: flex; align-items: center; padding: 0 10px 0 10px;
+}
+.tag::before {
+  content: ""; position: absolute; left: -13px; top: 0;
+  border-top: 21px solid transparent; border-bottom: 21px solid transparent; border-right: 13px solid var(--tag);
+}
+.tag::after {
+  content: ""; position: absolute; left: -3px; top: 50%; width: 8px; height: 8px; margin-top: -4px;
+  border-radius: 50%; background: var(--surface);
+}
+.tag input { width: 100%; min-width: 0; border: 0; background: transparent; outline: none; font-weight: 650; color: inherit; padding: 0 0 0 6px; }
+.tag input::placeholder { color: inherit; opacity: 0.55; }
+.tag input:focus-visible { text-decoration: underline; }
+.price-box { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+.price-box .input { width: 112px; text-align: right; font-variant-numeric: tabular-nums; }
+.price-box .input::placeholder { font-size: 13px; }
+.currency { color: var(--hint); }
+.remove { border: 0; background: none; color: var(--hint); font-size: 22px; line-height: 1; padding: 4px 2px 6px; cursor: pointer; }
+.remove:hover, .remove:focus-visible { color: var(--danger); }
+.pattern-line { display: flex; align-items: center; gap: 10px; margin: 7px 0 0 13px; }
+.pattern-line .input { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12.5px; padding: 6px 8px; }
+.palette-row { display: flex; align-items: center; gap: 12px; cursor: pointer; width: 100%; border: 0; background: none; text-align: left; padding: 12px 14px; }
+.palette-row + .palette-row { border-top: 1px solid var(--line); }
+.swatches { display: grid; grid-template-columns: repeat(2, 14px); grid-template-rows: repeat(2, 14px); gap: 3px; flex: 0 0 auto; border-radius: 6px; overflow: hidden; }
+.swatches i { display: block; }
+.palette-text { flex: 1 1 auto; }
+.check { color: var(--accent); font-size: 18px; visibility: hidden; }
+.palette-row[aria-checked="true"] .check { visibility: visible; }
+.notice { position: fixed; left: 12px; right: 12px; bottom: 16px; z-index: 10; padding: 12px 14px; border-radius: 12px; background: var(--text); color: var(--bg); font-size: 14px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25); }
+.notice.error { background: var(--danger); color: #fff; }
+.group-hint { margin: 7px 4px 0; }
+.group-hint.above { margin: -2px 4px 8px; }
+.more-link { margin-top: 5px; }
+.details { margin-top: 6px; padding: 9px 11px; border-radius: var(--radius-field); background: var(--raised); font-size: 13px; line-height: 1.45; color: var(--text); }
+.empty { margin: 48px 8px; text-align: center; color: var(--hint); }
+.empty strong { display: block; color: var(--text); font-size: 17px; margin-bottom: 8px; }
+.fallback-save { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: var(--bg); border-top: 1px solid var(--line); }
+.fallback-save button { width: 100%; border: 0; border-radius: 10px; padding: 13px; background: var(--accent); color: var(--accent-ink); font-weight: 600; cursor: pointer; }
+.fallback-save button:disabled { opacity: 0.5; }
+@media (prefers-reduced-motion: reduce) { .switch span, .switch span::after { transition: none; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="title-row"><span class="app-name">Market Watcher</span><span class="dirty-note" id="dirty-note"></span></div>
+  <nav class="tabs" id="tabs" role="tablist"></nav>
+</header>
+<main id="content"></main>
+<div class="notice" id="notice" role="status" hidden></div>
+<footer class="fallback-save" id="fallback-save" hidden><button type="button" id="fallback-save-button"></button></footer>
+<script>
+"use strict";
+
+const TEXT = {
+  tabs: { searches: "\u041f\u043e\u0438\u0441\u043a\u0438", filters: "\u0424\u0438\u043b\u044c\u0442\u0440\u044b", general: "\u041e\u0431\u0449\u0438\u0435", look: "\u0412\u0438\u0434" },
+  save: "\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c",
+  saveCount: (count) => "\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c (" + count + ")",
+  unsaved: (count) => "\u043d\u0435 \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u043e: " + count,
+  noData: "\u041e\u0442\u043a\u0440\u043e\u0439 \u0444\u043e\u0440\u043c\u0443 \u043a\u043d\u043e\u043f\u043a\u043e\u0439 \u00ab\u2699\ufe0f \u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438\u00bb \u0432 \u0447\u0430\u0442\u0435 \u0441 \u0431\u043e\u0442\u043e\u043c",
+  noDataHint: "\u0411\u043e\u0442 \u043a\u043b\u0430\u0434\u0451\u0442 \u0442\u0435\u043a\u0443\u0449\u0438\u0435 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438 \u043f\u0440\u044f\u043c\u043e \u0432 \u043a\u043d\u043e\u043f\u043a\u0443, \u043f\u043e\u044d\u0442\u043e\u043c\u0443 \u0438\u0437 \u0437\u0430\u043a\u043b\u0430\u0434\u043e\u043a \u0438\u043b\u0438 \u043f\u043e \u043f\u0440\u044f\u043c\u043e\u0439 \u0441\u0441\u044b\u043b\u043a\u0435 \u0444\u043e\u0440\u043c\u0430 \u043f\u0443\u0441\u0442\u0430\u044f.",
+  unsupported: "\u042d\u0442\u0430 \u0432\u0435\u0440\u0441\u0438\u044f Telegram \u043d\u0435 \u043c\u043e\u0436\u0435\u0442 \u0440\u0430\u0441\u043f\u0430\u043a\u043e\u0432\u0430\u0442\u044c \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438. \u041e\u0431\u043d\u043e\u0432\u0438 Telegram \u0438 \u043e\u0442\u043a\u0440\u043e\u0439 \u0444\u043e\u0440\u043c\u0443 \u0441\u043d\u043e\u0432\u0430.",
+  brokenData: "\u041d\u0435 \u043f\u043e\u043b\u0443\u0447\u0438\u043b\u043e\u0441\u044c \u043f\u0440\u043e\u0447\u0438\u0442\u0430\u0442\u044c \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438. \u041e\u0442\u043a\u0440\u043e\u0439 \u0444\u043e\u0440\u043c\u0443 \u0437\u0430\u043d\u043e\u0432\u043e \u043a\u043d\u043e\u043f\u043a\u043e\u0439 \u0432 \u0447\u0430\u0442\u0435.",
+  tooLarge: "\u0421\u043b\u0438\u0448\u043a\u043e\u043c \u043c\u043d\u043e\u0433\u043e \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0439 \u0437\u0430 \u0440\u0430\u0437: Telegram \u043f\u0440\u043e\u043f\u0443\u0441\u043a\u0430\u0435\u0442 \u0434\u043e 4 \u041a\u0411. \u0421\u043e\u0445\u0440\u0430\u043d\u0438 \u0447\u0430\u0441\u0442\u044c, \u043f\u043e\u0442\u043e\u043c \u043e\u0442\u043a\u0440\u043e\u0439 \u0444\u043e\u0440\u043c\u0443 \u0441\u043d\u043e\u0432\u0430 \u0438 \u043f\u0440\u043e\u0434\u043e\u043b\u0436\u0438.",
+  notInTelegram: "\u0424\u043e\u0440\u043c\u0430 \u043e\u0442\u043a\u0440\u044b\u0442\u0430 \u043d\u0435 \u0438\u0437 Telegram: \u0441\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u043c\u043e\u0436\u043d\u043e \u0442\u043e\u043b\u044c\u043a\u043e \u0447\u0435\u0440\u0435\u0437 \u043a\u043d\u043e\u043f\u043a\u0443 \u00ab\u2699\ufe0f \u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438\u00bb \u0432 \u0447\u0430\u0442\u0435.",
+  searchLink: "\u0421\u0441\u044b\u043b\u043a\u0430",
+  searchLinkHint: "\u041d\u0430\u0441\u0442\u0440\u043e\u0439 \u0444\u0438\u043b\u044c\u0442\u0440\u044b \u043d\u0430 \u0441\u0430\u0439\u0442\u0435 \u0410\u0432\u0438\u0442\u043e \u0438 \u0441\u043a\u043e\u043f\u0438\u0440\u0443\u0439 \u0430\u0434\u0440\u0435\u0441 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u044b",
+  searchProfile: "\u041f\u0440\u043e\u0444\u0438\u043b\u044c \u0444\u0438\u043b\u044c\u0442\u0440\u043e\u0432",
+  searchInterval: "\u041f\u0440\u043e\u0432\u0435\u0440\u044f\u0442\u044c \u043a\u0430\u0436\u0434\u044b\u0435",
+  seconds: "\u0441",
+  intervalHint: "\u041a\u0430\u043a \u0447\u0430\u0441\u0442\u043e \u043e\u0442\u043a\u0440\u044b\u0432\u0430\u0442\u044c \u0432\u044b\u0434\u0430\u0447\u0443. \u0427\u0430\u0449\u0435 \u2014 \u043d\u043e\u0432\u044b\u0435 \u043f\u0440\u0438\u0445\u043e\u0434\u044f\u0442 \u0431\u044b\u0441\u0442\u0440\u0435\u0435, \u043d\u043e \u043a\u0430\u0436\u0434\u0430\u044f \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u2014 \u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0430 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u044b, \u0438 \u043a\u0430\u043f\u0447\u0430 \u0431\u0443\u0434\u0435\u0442 \u0447\u0430\u0449\u0435. \u041d\u0435 \u0447\u0430\u0449\u0435 \u0440\u0430\u0437\u0430 \u0432 30 \u0441.",
+  priceFrom: "\u0426\u0435\u043d\u0430 \u043e\u0442",
+  priceTo: "\u0426\u0435\u043d\u0430 \u0434\u043e",
+  priceHint: "\u041f\u0443\u0441\u0442\u043e \u2014 \u043a\u0430\u043a \u0432 \u0441\u0441\u044b\u043b\u043a\u0435",
+  historyHours: "\u0418\u0441\u0442\u043e\u0440\u0438\u044f, \u0447\u0430\u0441\u043e\u0432",
+  historyPages: "\u0421\u0442\u0440\u0430\u043d\u0438\u0446 \u0438\u0441\u0442\u043e\u0440\u0438\u0438",
+  historyHint: "\u0421\u0440\u0430\u0431\u0430\u0442\u044b\u0432\u0430\u0435\u0442 \u043e\u0434\u0438\u043d \u0440\u0430\u0437 \u2014 \u043f\u0440\u0438 \u043f\u0435\u0440\u0432\u043e\u0439 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0435 \u043d\u043e\u0432\u043e\u0433\u043e \u043f\u043e\u0438\u0441\u043a\u0430 \u0438\u043b\u0438 \u043f\u043e\u0441\u043b\u0435 \u0441\u043c\u0435\u043d\u044b \u0441\u0441\u044b\u043b\u043a\u0438. \u00ab\u0418\u0441\u0442\u043e\u0440\u0438\u044f, \u0447\u0430\u0441\u043e\u0432\u00bb: \u043f\u0440\u0438\u0441\u043b\u0430\u0442\u044c \u043e\u0431\u044a\u044f\u0432\u043b\u0435\u043d\u0438\u044f, \u0432\u044b\u043b\u043e\u0436\u0435\u043d\u043d\u044b\u0435 \u0437\u0430 \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0435 N \u0447\u0430\u0441\u043e\u0432 (24 \u2014 \u0437\u0430 \u0441\u0443\u0442\u043a\u0438); 0 \u2014 \u0441\u0442\u0430\u0440\u043e\u0435 \u043d\u0435 \u043f\u0440\u0438\u0441\u044b\u043b\u0430\u0442\u044c, \u0442\u043e\u043b\u044c\u043a\u043e \u043d\u043e\u0432\u044b\u0435 \u0441 \u044d\u0442\u043e\u0433\u043e \u043c\u043e\u043c\u0435\u043d\u0442\u0430; \u22121 \u2014 \u0432\u0441\u0451, \u0447\u0442\u043e \u043d\u0430\u0439\u0434\u0451\u0442\u0441\u044f. \u00ab\u0421\u0442\u0440\u0430\u043d\u0438\u0446 \u0438\u0441\u0442\u043e\u0440\u0438\u0438\u00bb: \u0441\u043a\u043e\u043b\u044c\u043a\u043e \u0441\u0442\u0440\u0430\u043d\u0438\u0446 \u0432\u044b\u0434\u0430\u0447\u0438 \u043f\u0440\u043e\u043b\u0438\u0441\u0442\u0430\u0442\u044c \u0432 \u044d\u0442\u043e\u0442 \u0440\u0430\u0437.",
+  newSearchName: "\u041d\u0430\u0437\u0432\u0430\u043d\u0438\u0435, \u043e\u0434\u043d\u043e \u0441\u043b\u043e\u0432\u043e",
+  deleteSearch: "\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u043f\u043e\u0438\u0441\u043a",
+  addSearch: "\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u043f\u043e\u0438\u0441\u043a",
+  noSearches: "\u041f\u043e\u0438\u0441\u043a\u043e\u0432 \u043f\u043e\u043a\u0430 \u043d\u0435\u0442. \u0414\u043e\u0431\u0430\u0432\u044c \u043f\u0435\u0440\u0432\u044b\u0439: \u043d\u0443\u0436\u043d\u0430 \u0441\u0441\u044b\u043b\u043a\u0430 \u043d\u0430 \u0432\u044b\u0434\u0430\u0447\u0443 \u0410\u0432\u0438\u0442\u043e.",
+  modelLimits: "\u041b\u0438\u043c\u0438\u0442\u044b \u043c\u043e\u0434\u0435\u043b\u0435\u0439",
+  modelLimitsHint: "\u0426\u0435\u043d\u0430 \u2014 \u043f\u043e\u0442\u043e\u043b\u043e\u043a: \u0434\u043e\u0440\u043e\u0436\u0435 \u043d\u0435 \u043f\u0440\u0438\u0441\u044b\u043b\u0430\u0442\u044c. \u041f\u0443\u0441\u0442\u043e \u2014 \u0431\u0435\u0437 \u043f\u043e\u0442\u043e\u043b\u043a\u0430: \u043c\u043e\u0434\u0435\u043b\u044c \u043f\u0440\u0438\u0445\u043e\u0434\u0438\u0442 \u043f\u043e \u0446\u0435\u043d\u0435 \u0438\u0437 \u0441\u0441\u044b\u043b\u043a\u0438 \u043f\u043e\u0438\u0441\u043a\u0430 \u0438 \u0441\u0440\u0430\u0432\u043d\u0438\u0432\u0430\u0435\u0442\u0441\u044f \u0441 \u0440\u044b\u043d\u043a\u043e\u043c.",
+  modelName: "\u041c\u043e\u0434\u0435\u043b\u044c",
+  noCap: "\u0431\u0435\u0437 \u043f\u043e\u0442\u043e\u043b\u043a\u0430",
+  pattern: "\u0448\u0430\u0431\u043b\u043e\u043d",
+  patternHide: "\u0441\u043a\u0440\u044b\u0442\u044c \u0448\u0430\u0431\u043b\u043e\u043d",
+  patternHint: "\u0428\u0430\u0431\u043b\u043e\u043d \u0438\u0449\u0435\u0442 \u043c\u043e\u0434\u0435\u043b\u044c \u0432 \u0437\u0430\u0433\u043e\u043b\u043e\u0432\u043a\u0435 \u0438 \u043e\u043f\u0438\u0441\u0430\u043d\u0438\u0438. \u0414\u043b\u044f \u043d\u043e\u0432\u043e\u0439 \u043c\u043e\u0434\u0435\u043b\u0438 \u043e\u043d \u0441\u043e\u0441\u0442\u0430\u0432\u043b\u044f\u0435\u0442\u0441\u044f \u0438\u0437 \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u044f \u0441\u0430\u043c.",
+  addModel: "\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u043c\u043e\u0434\u0435\u043b\u044c",
+  removeModel: "\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u043c\u043e\u0434\u0435\u043b\u044c",
+  onlyListedModels: "\u0422\u043e\u043b\u044c\u043a\u043e \u043c\u043e\u0434\u0435\u043b\u0438 \u0438\u0437 \u044d\u0442\u043e\u0433\u043e \u0441\u043f\u0438\u0441\u043a\u0430",
+  onlyListedModelsHint: "\u0412\u043a\u043b \u2014 \u043f\u0440\u0438\u0445\u043e\u0434\u044f\u0442 \u0442\u043e\u043b\u044c\u043a\u043e \u043c\u043e\u0434\u0435\u043b\u0438 \u0438\u0437 \u0441\u043f\u0438\u0441\u043a\u0430 \u0432\u044b\u0448\u0435, \u0432\u0441\u0451 \u043e\u0441\u0442\u0430\u043b\u044c\u043d\u043e\u0435 \u043e\u0442\u0441\u0435\u0438\u0432\u0430\u0435\u0442\u0441\u044f. \u0412\u044b\u043a\u043b \u2014 \u043f\u0440\u0438\u0445\u043e\u0434\u044f\u0442 \u043b\u044e\u0431\u044b\u0435 \u043e\u0431\u044a\u044f\u0432\u043b\u0435\u043d\u0438\u044f \u043f\u043e \u0441\u0441\u044b\u043b\u043a\u0435 \u043f\u043e\u0438\u0441\u043a\u0430, \u0430 \u043c\u043e\u0434\u0435\u043b\u0438 \u0438\u0437 \u0441\u043f\u0438\u0441\u043a\u0430 \u0435\u0449\u0451 \u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u044f\u044e\u0442\u0441\u044f \u043f\u043e \u0441\u0432\u043e\u0435\u043c\u0443 \u043f\u043e\u0442\u043e\u043b\u043a\u0443.",
+  stopWords: "\u0421\u0442\u043e\u043f-\u0441\u043b\u043e\u0432\u0430",
+  stopWordsHint: "\u041a\u0430\u0436\u0434\u043e\u0435 \u0441 \u043d\u043e\u0432\u043e\u0439 \u0441\u0442\u0440\u043e\u043a\u0438. \u041e\u0442\u0440\u0438\u0446\u0430\u043d\u0438\u044f \u043f\u043e\u043d\u0438\u043c\u0430\u044e\u0442\u0441\u044f: \u00ab\u0431\u0435\u0437 \u0430\u0440\u0442\u0435\u0444\u0430\u043a\u0442\u043e\u0432\u00bb \u043d\u0435 \u043e\u0442\u0441\u0435\u0435\u0442\u0441\u044f. \u00ab!\u00bb \u0432 \u043d\u0430\u0447\u0430\u043b\u0435 \u2014 \u043e\u0442\u0441\u0435\u0438\u0432\u0430\u0442\u044c \u0432\u0441\u0435\u0433\u0434\u0430.",
+  requiredWords: "\u041e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u044c\u043d\u044b\u0435 \u0441\u043b\u043e\u0432\u0430",
+  requiredWordsHint: "\u0415\u0441\u043b\u0438 \u0441\u043f\u0438\u0441\u043e\u043a \u043d\u0435 \u043f\u0443\u0441\u0442\u043e\u0439, \u043f\u0440\u0438\u0445\u043e\u0434\u044f\u0442 \u0442\u043e\u043b\u044c\u043a\u043e \u043e\u0431\u044a\u044f\u0432\u043b\u0435\u043d\u0438\u044f, \u0433\u0434\u0435 \u0435\u0441\u0442\u044c \u0445\u043e\u0442\u044f \u0431\u044b \u043e\u0434\u043d\u043e \u0438\u0437 \u044d\u0442\u0438\u0445 \u0441\u043b\u043e\u0432.",
+  flags: "\u041f\u043e\u043c\u0435\u0442\u043a\u0438",
+  flagsHint: "\u041d\u0435 \u043e\u0442\u0441\u0435\u0438\u0432\u0430\u044e\u0442, \u0430 \u043f\u043e\u043c\u0435\u0447\u0430\u044e\u0442 \u26a0\ufe0f \u0432 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0438. \u0421\u043b\u0435\u0432\u0430 \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u043f\u043e\u043c\u0435\u0442\u043a\u0438, \u0441\u043f\u0440\u0430\u0432\u0430 \u0441\u043b\u043e\u0432\u0430 \u2014 \u043a\u0430\u0436\u0434\u043e\u0435 \u0441 \u043d\u043e\u0432\u043e\u0439 \u0441\u0442\u0440\u043e\u043a\u0438.",
+  flagName: "\u041d\u0430\u0437\u0432\u0430\u043d\u0438\u0435",
+  addFlag: "\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u043f\u043e\u043c\u0435\u0442\u043a\u0443",
+  removeFlag: "\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u043f\u043e\u043c\u0435\u0442\u043a\u0443",
+  more: "\u0415\u0449\u0451",
+  details: "\u041f\u043e\u0434\u0440\u043e\u0431\u043d\u0435\u0435",
+  detailsHide: "\u0421\u043a\u0440\u044b\u0442\u044c",
+  choices: {
+    browser_channel: { msedge: "Microsoft Edge", chrome: "Google Chrome", chromium: "Chromium (\u0432\u0441\u0442\u0440\u043e\u0435\u043d\u043d\u044b\u0439)" },
+  },
+  switches: {
+    skip_reserved: ["\u041f\u0440\u043e\u043f\u0443\u0441\u043a\u0430\u0442\u044c \u0437\u0430\u0431\u0440\u043e\u043d\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u044b\u0435", "\u0418 \u043d\u0430\u043f\u0438\u0441\u0430\u0442\u044c \u{1f513}, \u043a\u043e\u0433\u0434\u0430 \u0431\u0440\u043e\u043d\u044c \u0441\u043d\u0438\u043c\u0443\u0442"],
+    hide_expensive: ["\u0421\u043a\u0440\u044b\u0432\u0430\u0442\u044c \u0437\u0430\u0432\u044b\u0448\u0435\u043d\u043d\u044b\u0435", "\u0414\u043e\u0440\u043e\u0436\u0435 \u0440\u044b\u043d\u043a\u0430 \u2014 \u0447\u0430\u0441\u0442\u0430\u044f \u043f\u0440\u0438\u043c\u0435\u0442\u0430 \u043f\u0435\u0440\u0435\u043a\u0443\u043f\u0430"],
+    hide_cheap: ["\u0421\u043a\u0440\u044b\u0432\u0430\u0442\u044c \u043f\u043e\u0434\u043e\u0437\u0440\u0438\u0442\u0435\u043b\u044c\u043d\u043e \u0434\u0435\u0448\u0451\u0432\u044b\u0435", "\u0421\u0438\u043b\u044c\u043d\u043e \u0434\u0435\u0448\u0435\u0432\u043b\u0435 \u0440\u044b\u043d\u043a\u0430"],
+    require_price_rule_match: ["\u0422\u043e\u043b\u044c\u043a\u043e \u043c\u043e\u0434\u0435\u043b\u0438 \u0438\u0437 \u0441\u043f\u0438\u0441\u043a\u0430", ""],
+  },
+  newProfile: "\u041d\u043e\u0432\u044b\u0439 \u043f\u0440\u043e\u0444\u0438\u043b\u044c",
+  newProfileHint: "\u041a\u043e\u043f\u0438\u044f \u0442\u0435\u043a\u0443\u0449\u0435\u0433\u043e \u043f\u0440\u043e\u0444\u0438\u043b\u044f. \u041d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u2014 \u043e\u0434\u043d\u043e \u0441\u043b\u043e\u0432\u043e.",
+  create: "\u0421\u043e\u0437\u0434\u0430\u0442\u044c",
+  cancel: "\u041e\u0442\u043c\u0435\u043d\u0430",
+  deleteProfile: "\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u043f\u0440\u043e\u0444\u0438\u043b\u044c",
+  profileInUse: (names) => "\u041f\u0440\u043e\u0444\u0438\u043b\u044c \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u044e\u0442 \u043f\u043e\u0438\u0441\u043a\u0438: " + names + ". \u0421\u043d\u0430\u0447\u0430\u043b\u0430 \u043f\u0435\u0440\u0435\u043a\u043b\u044e\u0447\u0438 \u0438\u0445 \u043d\u0430 \u0434\u0440\u0443\u0433\u043e\u0439.",
+  defaultProfileKept: "\u041f\u0440\u043e\u0444\u0438\u043b\u044c default \u0443\u0434\u0430\u043b\u0438\u0442\u044c \u043d\u0435\u043b\u044c\u0437\u044f",
+  palette: "\u041e\u0444\u043e\u0440\u043c\u043b\u0435\u043d\u0438\u0435",
+  paletteHint: "\u0412\u044b\u0431\u043e\u0440 \u0437\u0430\u043f\u043e\u043c\u0438\u043d\u0430\u0435\u0442\u0441\u044f \u0432 Telegram \u0438 \u0434\u0435\u0439\u0441\u0442\u0432\u0443\u0435\u0442 \u043d\u0430 \u0432\u0441\u0435\u0445 \u0442\u0432\u043e\u0438\u0445 \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u0430\u0445.",
+  errors: {
+    searchName: (index) => "\u041f\u043e\u0438\u0441\u043a \u2116" + index + ": \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u2014 \u043e\u0434\u043d\u043e \u0441\u043b\u043e\u0432\u043e \u0434\u043e 40 \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432",
+    searchDuplicate: (name) => "\u0414\u0432\u0430 \u043f\u043e\u0438\u0441\u043a\u0430 \u0441 \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u0435\u043c \u00ab" + name + "\u00bb",
+    searchLink: (name) => "\u0421\u0441\u044b\u043b\u043a\u0430 \u043f\u043e\u0438\u0441\u043a\u0430 \u00ab" + name + "\u00bb \u0434\u043e\u043b\u0436\u043d\u0430 \u0432\u0435\u0441\u0442\u0438 \u043d\u0430 avito.ru",
+    interval: (name) => "\u00ab\u041f\u0440\u043e\u0432\u0435\u0440\u044f\u0442\u044c \u043a\u0430\u0436\u0434\u044b\u0435\u00bb \u0443 \u00ab" + name + "\u00bb: \u043f\u0443\u0441\u0442\u043e \u0438\u043b\u0438 \u043e\u0442 30 \u0441\u0435\u043a\u0443\u043d\u0434",
+    number: (field, owner) => "\u0412 \u043f\u043e\u043b\u0435 \u00ab" + field + "\u00bb \u0443 \u00ab" + owner + "\u00bb \u0434\u043e\u043b\u0436\u043d\u043e \u0431\u044b\u0442\u044c \u0446\u0435\u043b\u043e\u0435 \u0447\u0438\u0441\u043b\u043e",
+    historyPages: (name) => "\u0421\u0442\u0440\u0430\u043d\u0438\u0446 \u0438\u0441\u0442\u043e\u0440\u0438\u0438 \u0443 \u00ab" + name + "\u00bb: \u043e\u0442 1 \u0434\u043e 20",
+    modelName: (profile) => "\u0412 \u043f\u0440\u043e\u0444\u0438\u043b\u0435 \u00ab" + profile + "\u00bb \u0435\u0441\u0442\u044c \u043c\u043e\u0434\u0435\u043b\u044c \u0431\u0435\u0437 \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u044f",
+    modelPattern: (model, problem) => "\u0428\u0430\u0431\u043b\u043e\u043d \u043c\u043e\u0434\u0435\u043b\u0438 \u00ab" + model + "\u00bb \u043d\u0435 \u0440\u0430\u0437\u0431\u0438\u0440\u0430\u0435\u0442\u0441\u044f: " + problem,
+    flagName: (profile) => "\u0412 \u043f\u0440\u043e\u0444\u0438\u043b\u0435 \u00ab" + profile + "\u00bb \u0435\u0441\u0442\u044c \u043f\u043e\u043c\u0435\u0442\u043a\u0430 \u0431\u0435\u0437 \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u044f",
+    profileName: "\u041d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u043f\u0440\u043e\u0444\u0438\u043b\u044f \u2014 \u043e\u0434\u043d\u043e \u0441\u043b\u043e\u0432\u043e \u0434\u043e 40 \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432, \u0431\u0435\u0437 \u043f\u043e\u0432\u0442\u043e\u0440\u043e\u0432",
+    general: (label) => "\u00ab" + label + "\u00bb: \u043d\u0443\u0436\u043d\u043e \u043d\u0435\u043e\u0442\u0440\u0438\u0446\u0430\u0442\u0435\u043b\u044c\u043d\u043e\u0435 \u0447\u0438\u0441\u043b\u043e",
+  },
+};
+
+const PALETTES = [
+  { id: "telegram", name: "\u041a\u0430\u043a \u0432 Telegram", hint: "\u0426\u0432\u0435\u0442\u0430 \u0442\u0432\u043e\u0435\u0439 \u0442\u0435\u043c\u044b Telegram", colors: null },
+  {
+    id: "board", name: "\u041f\u043b\u0430\u0442\u0430", hint: "\u0417\u0435\u043b\u0451\u043d\u044b\u0439 \u0442\u0435\u043a\u0441\u0442\u043e\u043b\u0438\u0442 \u0438 \u0437\u043e\u043b\u043e\u0442\u044b\u0435 \u043a\u043e\u043d\u0442\u0430\u043a\u0442\u044b", scheme: "dark",
+    colors: { bg: "#0e2219", surface: "#143024", raised: "#1b3b2d", line: "#2a5242", text: "#e6f0e9", hint: "#93b5a2",
+      accent: "#dcae45", "accent-ink": "#1c1505", link: "#e8c46e", danger: "#f2826a", heading: "#b9d3c4", tag: "#dcae45", "tag-ink": "#1c1505" },
+  },
+  {
+    id: "showcase", name: "\u0412\u0438\u0442\u0440\u0438\u043d\u0430", hint: "\u041d\u043e\u0447\u043d\u0430\u044f \u0432\u0438\u0442\u0440\u0438\u043d\u0430 \u0441 \u044f\u043d\u0442\u0430\u0440\u043d\u043e\u0439 \u043f\u043e\u0434\u0441\u0432\u0435\u0442\u043a\u043e\u0439", scheme: "dark",
+    colors: { bg: "#1c1e25", surface: "#24272f", raised: "#2d313b", line: "#3a3f4b", text: "#ede9e2", hint: "#9c9fa8",
+      accent: "#f3b53f", "accent-ink": "#241a05", link: "#f6c766", danger: "#ef6c5c", heading: "#b8b4ad", tag: "#f3b53f", "tag-ink": "#241a05" },
+  },
+  {
+    id: "price-tag", name: "\u0426\u0435\u043d\u043d\u0438\u043a", hint: "\u0421\u0432\u0435\u0442\u043b\u0430\u044f, \u043b\u0438\u043c\u0438\u0442\u044b \u2014 \u0436\u0451\u043b\u0442\u044b\u043c\u0438 \u0446\u0435\u043d\u043d\u0438\u043a\u0430\u043c\u0438", scheme: "light",
+    colors: { bg: "#e9edf2", surface: "#ffffff", raised: "#f4f6f9", line: "#d6dce4", text: "#1b2330", hint: "#677284",
+      accent: "#2554d0", "accent-ink": "#ffffff", link: "#2554d0", danger: "#cc3d3d", heading: "#4d5869", tag: "#ffd43b", "tag-ink": "#1b2330" },
+  },
+];
+const PALETTE_VARIABLES = ["bg", "surface", "raised", "line", "text", "hint", "accent", "accent-ink", "link", "danger", "heading", "tag", "tag-ink"];
+const PALETTE_STORAGE_KEY = "palette";
+
+// [key, label, short note, details behind "\u041f\u043e\u0434\u0440\u043e\u0431\u043d\u0435\u0435"]
+const SETTING_GROUPS = [
+  { title: "\u0421\u043a\u043e\u0440\u043e\u0441\u0442\u044c \u0438 \u043d\u0430\u0433\u0440\u0443\u0437\u043a\u0430 \u043d\u0430 \u0410\u0432\u0438\u0442\u043e",
+    hint: "\u041a\u0430\u043f\u0447\u0443 \u0432\u044b\u0437\u044b\u0432\u0430\u0435\u0442 \u0447\u0438\u0441\u043b\u043e \u0437\u0430\u0433\u0440\u0443\u0437\u043e\u043a \u0441\u0442\u0440\u0430\u043d\u0438\u0446. \u0412\u044b\u0434\u0430\u0447\u0430 \u0433\u0440\u0443\u0437\u0438\u0442\u0441\u044f \u0440\u0430\u0437 \u0432 \u0438\u043d\u0442\u0435\u0440\u0432\u0430\u043b \u043a\u0430\u0436\u0434\u043e\u0433\u043e \u043f\u043e\u0438\u0441\u043a\u0430 (\u0432\u043a\u043b\u0430\u0434\u043a\u0430 \u00ab\u041f\u043e\u0438\u0441\u043a\u0438\u00bb), \u043a\u0430\u0440\u0442\u043e\u0447\u043a\u0438 \u2014 \u0432 \u043f\u0440\u0435\u0434\u0435\u043b\u0430\u0445 \u043b\u0438\u043c\u0438\u0442\u043e\u0432 \u043d\u0438\u0436\u0435. \u0421\u043a\u043e\u043b\u044c\u043a\u043e \u0431\u044b\u043b\u043e \u0437\u0430\u0433\u0440\u0443\u0437\u043e\u043a \u043f\u0435\u0440\u0435\u0434 \u043a\u0430\u043f\u0447\u0435\u0439, \u0431\u043e\u0442 \u043f\u0438\u0448\u0435\u0442 \u0432 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0438 \u043e \u043d\u0435\u0439.",
+    keys: [
+    ["minimum_delay_between_page_loads_seconds", "\u041f\u0430\u0443\u0437\u0430 \u043c\u0435\u0436\u0434\u0443 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0430\u043c\u0438 \u043e\u0442, \u0441", "",
+      "\u0411\u043e\u0442 \u043d\u0438\u043a\u043e\u0433\u0434\u0430 \u043d\u0435 \u043e\u0442\u043a\u0440\u044b\u0432\u0430\u0435\u0442 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u044b \u043f\u043e\u0434\u0440\u044f\u0434: \u043c\u0435\u0436\u0434\u0443 \u043b\u044e\u0431\u044b\u043c\u0438 \u0434\u0432\u0443\u043c\u044f \u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0430\u043c\u0438 (\u0432\u044b\u0434\u0430\u0447\u0430, \u043a\u0430\u0440\u0442\u043e\u0447\u043a\u0430) \u043e\u043d \u0436\u0434\u0451\u0442 \u0441\u043b\u0443\u0447\u0430\u0439\u043d\u043e\u0435 \u0432\u0440\u0435\u043c\u044f \u043e\u0442 \u00ab\u043e\u0442\u00bb \u0434\u043e \u00ab\u0434\u043e\u00bb. \u0411\u043e\u043b\u044c\u0448\u0435 \u2014 \u043f\u0430\u0447\u043a\u0430 \u043d\u043e\u0432\u044b\u0445 \u043e\u0431\u044a\u044f\u0432\u043b\u0435\u043d\u0438\u0439 \u0440\u0430\u0437\u0431\u0438\u0440\u0430\u0435\u0442\u0441\u044f \u043c\u0435\u0434\u043b\u0435\u043d\u043d\u0435\u0435, \u0437\u0430\u0442\u043e \u043f\u043e\u0432\u0435\u0434\u0435\u043d\u0438\u0435 \u043f\u043e\u0445\u043e\u0436\u0435 \u043d\u0430 \u0447\u0435\u043b\u043e\u0432\u0435\u043a\u0430 \u0438 \u043a\u0430\u043f\u0447\u0430 \u0440\u0435\u0436\u0435. \u041c\u0435\u043d\u044c\u0448\u0435 \u2014 \u0431\u044b\u0441\u0442\u0440\u0435\u0435, \u043d\u043e \u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0438 \u043f\u043e\u0434\u0440\u044f\u0434 \u0410\u0432\u0438\u0442\u043e \u0437\u0430\u043c\u0435\u0447\u0430\u0435\u0442. \u0420\u0430\u0437\u0443\u043c\u043d\u043e: \u043e\u0442 7 \u0434\u043e 15 \u0441."],
+    ["maximum_delay_between_page_loads_seconds", "\u041f\u0430\u0443\u0437\u0430 \u043c\u0435\u0436\u0434\u0443 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0430\u043c\u0438 \u0434\u043e, \u0441", "",
+      "\u0412\u0435\u0440\u0445\u043d\u044f\u044f \u0433\u0440\u0430\u043d\u0438\u0446\u0430 \u0441\u043b\u0443\u0447\u0430\u0439\u043d\u043e\u0439 \u043f\u0430\u0443\u0437\u044b \u043c\u0435\u0436\u0434\u0443 \u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0430\u043c\u0438. \u041d\u0435 \u043c\u043e\u0436\u0435\u0442 \u0431\u044b\u0442\u044c \u043c\u0435\u043d\u044c\u0448\u0435 \u00ab\u043e\u0442\u00bb. \u0427\u0435\u043c \u0448\u0438\u0440\u0435 \u0440\u0430\u0437\u0431\u0440\u043e\u0441, \u0442\u0435\u043c \u043c\u0435\u043d\u044c\u0448\u0435 \u0440\u0438\u0442\u043c \u043f\u043e\u0445\u043e\u0436 \u043d\u0430 \u0440\u043e\u0431\u043e\u0442\u0430."],
+    ["maximum_listing_pages_per_scan", "\u041a\u0430\u0440\u0442\u043e\u0447\u0435\u043a \u0437\u0430 \u043e\u0434\u043d\u0443 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0443", "",
+      "\u0421\u043a\u043e\u043b\u044c\u043a\u043e \u043a\u0430\u0440\u0442\u043e\u0447\u0435\u043a \u043e\u0431\u044a\u044f\u0432\u043b\u0435\u043d\u0438\u0439 \u0431\u043e\u0442 \u043c\u043e\u0436\u0435\u0442 \u043e\u0442\u043a\u0440\u044b\u0442\u044c \u0437\u0430 \u043e\u0434\u0438\u043d \u043f\u0440\u043e\u0445\u043e\u0434 \u0432\u044b\u0434\u0430\u0447\u0438. \u041a\u0430\u0440\u0442\u043e\u0447\u043a\u0443 \u043e\u043d \u043e\u0442\u043a\u0440\u044b\u0432\u0430\u0435\u0442, \u043a\u043e\u0433\u0434\u0430 \u043f\u043e \u0432\u044b\u0434\u0430\u0447\u0435 \u043d\u0435\u043b\u044c\u0437\u044f \u0440\u0435\u0448\u0438\u0442\u044c: \u043e\u043f\u0438\u0441\u0430\u043d\u0438\u0435 \u043e\u0431\u0440\u0435\u0437\u0430\u043d\u043e, \u043d\u0443\u0436\u043d\u043e \u0443\u0437\u043d\u0430\u0442\u044c \u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440\u044b \u0438\u043b\u0438 \u0431\u0440\u043e\u043d\u044c. \u041e\u0441\u0442\u0430\u043b\u044c\u043d\u044b\u0435 \u043f\u043e\u0434\u0445\u043e\u0434\u044f\u0449\u0438\u0435 \u0436\u0434\u0443\u0442 \u0432 \u043e\u0447\u0435\u0440\u0435\u0434\u0438. \u0411\u043e\u043b\u044c\u0448\u0435 \u2014 \u043f\u0440\u0438 \u043d\u0430\u043f\u043b\u044b\u0432\u0435 \u043d\u043e\u0432\u044b\u0435 \u043f\u0440\u0438\u0445\u043e\u0434\u044f\u0442 \u0431\u044b\u0441\u0442\u0440\u0435\u0435, \u043d\u043e \u044d\u0442\u043e \u0437\u0430\u043b\u043f \u0437\u0430\u0433\u0440\u0443\u0437\u043e\u043a. \u041c\u0435\u043d\u044c\u0448\u0435 \u2014 \u043d\u0430\u0433\u0440\u0443\u0437\u043a\u0430 \u0440\u043e\u0432\u043d\u0435\u0435."],
+    ["maximum_listing_pages_per_hour", "\u041a\u0430\u0440\u0442\u043e\u0447\u0435\u043a \u0432 \u0447\u0430\u0441", "\u0412\u043c\u0435\u0441\u0442\u0435 \u0441 \u043f\u0435\u0440\u0435\u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430\u043c\u0438 \u0431\u0440\u043e\u043d\u0435\u0439. 0 \u2014 \u0431\u0435\u0437 \u043b\u0438\u043c\u0438\u0442\u0430",
+      "\u041f\u043e\u0442\u043e\u043b\u043e\u043a \u043a\u0430\u0440\u0442\u043e\u0447\u0435\u043a \u0437\u0430 \u043b\u044e\u0431\u043e\u0439 \u0447\u0430\u0441 \u2014 \u0432\u043c\u0435\u0441\u0442\u0435 \u0441 \u043e\u0447\u0435\u0440\u0435\u0434\u044c\u044e \u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u043e\u0439 \u0431\u0440\u043e\u043d\u0435\u0439. \u041a\u0430\u0440\u0442\u043e\u0447\u043a\u0438 \u0410\u0432\u0438\u0442\u043e \u043e\u0433\u0440\u0430\u043d\u0438\u0447\u0438\u0432\u0430\u0435\u0442 \u0441\u0442\u0440\u043e\u0436\u0435, \u0447\u0435\u043c \u0432\u044b\u0434\u0430\u0447\u0443, \u043f\u043e\u044d\u0442\u043e\u043c\u0443 \u044d\u0442\u043e \u0433\u043b\u0430\u0432\u043d\u044b\u0439 \u0440\u044b\u0447\u0430\u0433 \u043f\u0440\u043e\u0442\u0438\u0432 \u043a\u0430\u043f\u0447\u0438. \u041a\u043e\u0433\u0434\u0430 \u043b\u0438\u043c\u0438\u0442 \u0438\u0441\u0447\u0435\u0440\u043f\u0430\u043d, \u043e\u0431\u044a\u044f\u0432\u043b\u0435\u043d\u0438\u044f \u0436\u0434\u0443\u0442 \u0432 \u043e\u0447\u0435\u0440\u0435\u0434\u0438 (\u0432 \u0436\u0443\u0440\u043d\u0430\u043b\u0435 \u2014 \u00ab\u0436\u0434\u0451\u0442 \u043e\u0447\u0435\u0440\u0435\u0434\u0438\u00bb). 0 \u2014 \u0431\u0435\u0437 \u043b\u0438\u043c\u0438\u0442\u0430, \u043d\u0435 \u0441\u043e\u0432\u0435\u0442\u0443\u044e."],
+    ["maximum_listing_pages_per_10_minutes", "\u041a\u0430\u0440\u0442\u043e\u0447\u0435\u043a \u0437\u0430 10 \u043c\u0438\u043d\u0443\u0442", "\u0427\u0442\u043e\u0431\u044b \u0447\u0430\u0441\u043e\u0432\u043e\u0439 \u043b\u0438\u043c\u0438\u0442 \u043d\u0435 \u0443\u0445\u043e\u0434\u0438\u043b \u0437\u0430\u043b\u043f\u043e\u043c",
+      "\u041d\u0435 \u0434\u0430\u0451\u0442 \u0438\u0441\u0442\u0440\u0430\u0442\u0438\u0442\u044c \u0447\u0430\u0441\u043e\u0432\u043e\u0439 \u043b\u0438\u043c\u0438\u0442 \u0437\u0430 \u043d\u0435\u0441\u043a\u043e\u043b\u044c\u043a\u043e \u043c\u0438\u043d\u0443\u0442. \u0415\u0441\u043b\u0438 \u043f\u043e\u0441\u0442\u0430\u0432\u0438\u0442\u044c \u0441\u0442\u043e\u043b\u044c\u043a\u043e \u0436\u0435 \u0438\u043b\u0438 \u0431\u043e\u043b\u044c\u0448\u0435, \u0447\u0435\u043c \u00ab\u0432 \u0447\u0430\u0441\u00bb \u0437\u0430 10 \u043c\u0438\u043d\u0443\u0442 \u0443\u0436\u0435 \u043d\u0435 \u0443\u043b\u043e\u0436\u0438\u0442\u044c\u0441\u044f \u2014 \u0437\u0430\u0449\u0438\u0442\u0430 \u043e\u0442 \u0437\u0430\u043b\u043f\u0430 \u0444\u0430\u043a\u0442\u0438\u0447\u0435\u0441\u043a\u0438 \u0432\u044b\u043a\u043b\u044e\u0447\u0435\u043d\u0430. \u0420\u0430\u0437\u0443\u043c\u043d\u043e: \u0442\u0440\u0435\u0442\u044c-\u0447\u0435\u0442\u0432\u0435\u0440\u0442\u044c \u0447\u0430\u0441\u043e\u0432\u043e\u0433\u043e \u043b\u0438\u043c\u0438\u0442\u0430, \u043d\u0430\u043f\u0440\u0438\u043c\u0435\u0440 6 \u043f\u0440\u0438 20 \u0432 \u0447\u0430\u0441."],
+    ["deferred_listing_recheck_minutes", "\u041f\u043e\u0432\u0442\u043e\u0440 \u043e\u0442\u043b\u043e\u0436\u0435\u043d\u043d\u044b\u0445 \u0447\u0435\u0440\u0435\u0437, \u043c\u0438\u043d", "",
+      "\u041e\u0431\u044a\u044f\u0432\u043b\u0435\u043d\u0438\u0435 \u043f\u043e\u043f\u0430\u043b\u043e \u0432 \u043e\u0447\u0435\u0440\u0435\u0434\u044c (\u043b\u0438\u043c\u0438\u0442 \u043a\u0430\u0440\u0442\u043e\u0447\u0435\u043a \u043a\u043e\u043d\u0447\u0438\u043b\u0441\u044f \u0438\u043b\u0438 \u043a\u0430\u0440\u0442\u043e\u0447\u043a\u0430 \u043d\u0435 \u043e\u0442\u043a\u0440\u044b\u043b\u0430\u0441\u044c) \u2014 \u0447\u0435\u0440\u0435\u0437 \u0441\u043a\u043e\u043b\u044c\u043a\u043e \u043c\u0438\u043d\u0443\u0442 \u043f\u043e\u043f\u0440\u043e\u0431\u043e\u0432\u0430\u0442\u044c \u0441\u043d\u043e\u0432\u0430. \u041c\u0435\u043d\u044c\u0448\u0435 \u2014 \u0431\u044b\u0441\u0442\u0440\u0435\u0435 \u0434\u043e\u0439\u0434\u0451\u0442 \u0434\u043e \u0442\u0435\u0431\u044f, \u043d\u043e \u0447\u0430\u0449\u0435 \u0442\u0440\u0430\u0442\u0438\u0442 \u043b\u0438\u043c\u0438\u0442."],
+    ["recheck_job_interval_minutes", "\u0420\u0430\u0437\u0431\u043e\u0440 \u043e\u0447\u0435\u0440\u0435\u0434\u0438 \u043a\u0430\u0436\u0434\u044b\u0435, \u043c\u0438\u043d", "",
+      "\u041a\u0430\u043a \u0447\u0430\u0441\u0442\u043e \u0431\u043e\u0442 \u0440\u0430\u0437\u0431\u0438\u0440\u0430\u0435\u0442 \u043e\u0447\u0435\u0440\u0435\u0434\u044c: \u043e\u0442\u043b\u043e\u0436\u0435\u043d\u043d\u044b\u0435 \u043e\u0431\u044a\u044f\u0432\u043b\u0435\u043d\u0438\u044f \u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0443 \u0441\u043d\u044f\u0442\u0438\u044f \u0431\u0440\u043e\u043d\u0438. \u0415\u0441\u043b\u0438 \u043f\u043e\u0434\u043e\u0448\u043b\u043e \u0432\u0440\u0435\u043c\u044f \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u0432\u044b\u0434\u0430\u0447\u0438, \u0440\u0430\u0437\u0431\u043e\u0440 \u0436\u0434\u0451\u0442 \u2014 \u0441\u0432\u0435\u0436\u0438\u0435 \u0432\u0430\u0436\u043d\u0435\u0435."],
+    ["maximum_rechecks_per_cycle", "\u041a\u0430\u0440\u0442\u043e\u0447\u0435\u043a \u0438\u0437 \u043e\u0447\u0435\u0440\u0435\u0434\u0438 \u0437\u0430 \u0440\u0430\u0437", "",
+      "\u0421\u043a\u043e\u043b\u044c\u043a\u043e \u043a\u0430\u0440\u0442\u043e\u0447\u0435\u043a \u0438\u0437 \u043e\u0447\u0435\u0440\u0435\u0434\u0438 \u043e\u0442\u043a\u0440\u044b\u0442\u044c \u0437\u0430 \u043e\u0434\u0438\u043d \u0440\u0430\u0437\u0431\u043e\u0440. \u0412 \u043b\u044e\u0431\u043e\u043c \u0441\u043b\u0443\u0447\u0430\u0435 \u043d\u0435 \u0431\u043e\u043b\u044c\u0448\u0435, \u0447\u0435\u043c \u043e\u0441\u0442\u0430\u043b\u043e\u0441\u044c \u0432 \u043b\u0438\u043c\u0438\u0442\u0430\u0445 \u00ab\u0432 \u0447\u0430\u0441\u00bb \u0438 \u00ab\u0437\u0430 10 \u043c\u0438\u043d\u0443\u0442\u00bb."],
+  ] },
+  { title: "\u041d\u043e\u0432\u044b\u0435 \u043e\u0431\u044a\u044f\u0432\u043b\u0435\u043d\u0438\u044f", keys: [
+    ["send_fresh_without_listing_page", "\u0421\u0432\u0435\u0436\u0438\u0435 \u2014 \u0431\u0435\u0437 \u043e\u0442\u043a\u0440\u044b\u0442\u0438\u044f \u043a\u0430\u0440\u0442\u043e\u0447\u043a\u0438", "\u0411\u044b\u0441\u0442\u0440\u0435\u0435 \u0438 \u044d\u043a\u043e\u043d\u043e\u043c\u0438\u0442 \u043a\u0430\u0440\u0442\u043e\u0447\u043a\u0438",
+      "\u0415\u0441\u043b\u0438 \u043e\u0431\u044a\u044f\u0432\u043b\u0435\u043d\u0438\u0435 \u0432\u044b\u043b\u043e\u0436\u0435\u043d\u043e \u0442\u043e\u043b\u044c\u043a\u043e \u0447\u0442\u043e \u0438 \u0432 \u0432\u044b\u0434\u0430\u0447\u0435 \u0432\u0438\u0434\u043d\u043e \u0435\u0433\u043e \u043e\u043f\u0438\u0441\u0430\u043d\u0438\u0435 \u0446\u0435\u043b\u0438\u043a\u043e\u043c (\u043a\u043e\u0440\u043e\u0442\u043a\u043e\u0435, \u043d\u0435 \u043e\u0431\u0440\u0435\u0437\u0430\u043d\u043e \u00ab...\u00bb), \u0431\u043e\u0442 \u043f\u0440\u043e\u0432\u0435\u0440\u044f\u0435\u0442 \u0444\u0438\u043b\u044c\u0442\u0440\u044b \u043f\u0440\u044f\u043c\u043e \u043f\u043e \u0432\u044b\u0434\u0430\u0447\u0435 \u0438 \u0441\u0440\u0430\u0437\u0443 \u043f\u0440\u0438\u0441\u044b\u043b\u0430\u0435\u0442, \u043d\u0435 \u043e\u0442\u043a\u0440\u044b\u0432\u0430\u044f \u043a\u0430\u0440\u0442\u043e\u0447\u043a\u0443. \u042d\u0442\u043e \u0431\u044b\u0441\u0442\u0440\u0435\u0435 \u043d\u0430 10\u201330 \u0441\u0435\u043a\u0443\u043d\u0434 \u0438 \u043d\u0435 \u0442\u0440\u0430\u0442\u0438\u0442 \u043b\u0438\u043c\u0438\u0442 \u043a\u0430\u0440\u0442\u043e\u0447\u0435\u043a \u2014 \u043a\u0430\u043f\u0447\u0430 \u0440\u0435\u0436\u0435. \u041c\u0438\u043d\u0443\u0441: \u0432 \u0442\u0430\u043a\u043e\u043c \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0438 \u043d\u0435\u0442 \u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440\u043e\u0432 \u0438 \u0434\u0430\u043d\u043d\u044b\u0445 \u043f\u0440\u043e\u0434\u0430\u0432\u0446\u0430. \u0412\u044b\u043a\u043b \u2014 \u043a\u0430\u0436\u0434\u0443\u044e \u043f\u043e\u0434\u0445\u043e\u0434\u044f\u0449\u0443\u044e \u043a\u0430\u0440\u0442\u043e\u0447\u043a\u0443 \u0431\u043e\u0442 \u043e\u0442\u043a\u0440\u044b\u0432\u0430\u0435\u0442 \u043f\u0435\u0440\u0435\u0434 \u043e\u0442\u043f\u0440\u0430\u0432\u043a\u043e\u0439."],
+    ["complete_description_maximum_length", "\u041e\u043f\u0438\u0441\u0430\u043d\u0438\u0435 \u0446\u0435\u043b\u043e\u0435, \u0435\u0441\u043b\u0438 \u043a\u043e\u0440\u043e\u0447\u0435, \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432", "",
+      "\u0410\u0432\u0438\u0442\u043e \u0432 \u0432\u044b\u0434\u0430\u0447\u0435 \u043e\u0431\u0440\u0435\u0437\u0430\u0435\u0442 \u043e\u043f\u0438\u0441\u0430\u043d\u0438\u0435 \u043f\u0440\u0438\u043c\u0435\u0440\u043d\u043e \u0434\u043e 250 \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432. \u0415\u0441\u043b\u0438 \u043e\u043f\u0438\u0441\u0430\u043d\u0438\u0435 \u043a\u043e\u0440\u043e\u0447\u0435 \u044d\u0442\u043e\u0433\u043e \u0447\u0438\u0441\u043b\u0430, \u0431\u043e\u0442 \u0441\u0447\u0438\u0442\u0430\u0435\u0442, \u0447\u0442\u043e \u0432\u0438\u0434\u0438\u0442 \u0435\u0433\u043e \u0446\u0435\u043b\u0438\u043a\u043e\u043c, \u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u044f\u0435\u0442 \u0441\u0442\u043e\u043f-\u0441\u043b\u043e\u0432\u0430 \u0431\u0435\u0437 \u043a\u0430\u0440\u0442\u043e\u0447\u043a\u0438. \u0411\u043e\u043b\u044c\u0448\u0435 \u2014 \u0447\u0430\u0449\u0435 \u043e\u0431\u0445\u043e\u0434\u0438\u0442\u0441\u044f \u0431\u0435\u0437 \u043a\u0430\u0440\u0442\u043e\u0447\u043a\u0438, \u043d\u043e \u043c\u043e\u0436\u0435\u0442 \u043f\u0440\u043e\u043f\u0443\u0441\u0442\u0438\u0442\u044c \u0441\u0442\u043e\u043f-\u0441\u043b\u043e\u0432\u043e \u0432 \u043e\u0431\u0440\u0435\u0437\u0430\u043d\u043d\u043e\u043c \u0445\u0432\u043e\u0441\u0442\u0435."],
+    ["fresh_listing_minutes", "\u00ab\u041d\u043e\u0432\u043e\u0435\u00bb \u2014 \u043d\u0435 \u0441\u0442\u0430\u0440\u0448\u0435, \u043c\u0438\u043d", "",
+      "\u041e\u0431\u044a\u044f\u0432\u043b\u0435\u043d\u0438\u0435 \u043c\u043e\u043b\u043e\u0436\u0435 \u044d\u0442\u043e\u0433\u043e \u0441\u0447\u0438\u0442\u0430\u0435\u0442\u0441\u044f \u043d\u043e\u0432\u044b\u043c: \u0437\u0430\u0433\u043e\u043b\u043e\u0432\u043e\u043a \u00ab\u26a1 \u041d\u041e\u0412\u041e\u0415 \u041e\u0411\u042a\u042f\u0412\u041b\u0415\u041d\u0418\u0415\u00bb \u0438 \u043e\u0442\u043f\u0440\u0430\u0432\u043a\u0430 \u0431\u0435\u0437 \u0437\u0430\u0434\u0435\u0440\u0436\u043a\u0438. \u0421\u0442\u0430\u0440\u0448\u0435 \u2014 \u00ab\u{1f914} \u0412\u043e\u0437\u043c\u043e\u0436\u043d\u043e \u0438\u043d\u0442\u0435\u0440\u0435\u0441\u043d\u043e\u00bb, \u0441 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u043e\u0439 \u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440\u043e\u0432."],
+    ["fresh_listing_maximum_views", "\u00ab\u041d\u043e\u0432\u043e\u0435\u00bb \u2014 \u043d\u0435 \u0431\u043e\u043b\u044c\u0448\u0435 \u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440\u043e\u0432", "",
+      "\u0415\u0441\u043b\u0438 \u0443 \u00ab\u043d\u043e\u0432\u043e\u0433\u043e\u00bb \u043e\u0431\u044a\u044f\u0432\u043b\u0435\u043d\u0438\u044f \u0443\u0436\u0435 \u043c\u043d\u043e\u0433\u043e \u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440\u043e\u0432, \u044d\u0442\u043e \u0441\u043a\u043e\u0440\u0435\u0435 \u043f\u043e\u0434\u043d\u044f\u0442\u043e\u0435 \u0441\u0442\u0430\u0440\u043e\u0435 \u2014 \u043e\u043d\u043e \u043f\u043e\u0439\u0434\u0451\u0442 \u043a\u0430\u043a \u00ab\u0412\u043e\u0437\u043c\u043e\u0436\u043d\u043e \u0438\u043d\u0442\u0435\u0440\u0435\u0441\u043d\u043e\u00bb."],
+    ["interesting_if_views_below", "\u00ab\u0412\u043e\u0437\u043c\u043e\u0436\u043d\u043e \u0438\u043d\u0442\u0435\u0440\u0435\u0441\u043d\u043e\u00bb, \u0435\u0441\u043b\u0438 \u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440\u043e\u0432 \u043c\u0435\u043d\u044c\u0448\u0435", "0 \u2014 \u043d\u0435 \u043f\u0440\u043e\u0432\u0435\u0440\u044f\u0442\u044c",
+      "\u0414\u043b\u044f \u043e\u0431\u044a\u044f\u0432\u043b\u0435\u043d\u0438\u0439 \u043f\u043e\u0441\u0442\u0430\u0440\u0448\u0435: \u043c\u0430\u043b\u043e \u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440\u043e\u0432 \u2014 \u0435\u0433\u043e \u0435\u0449\u0451 \u043d\u0438\u043a\u0442\u043e \u043d\u0435 \u0437\u0430\u043c\u0435\u0442\u0438\u043b, \u0435\u0441\u0442\u044c \u0448\u0430\u043d\u0441 \u0443\u0441\u043f\u0435\u0442\u044c \u043f\u0435\u0440\u0432\u044b\u043c."],
+    ["interesting_if_views_above", "\u2026\u0438\u043b\u0438 \u0431\u043e\u043b\u044c\u0448\u0435", "0 \u2014 \u043d\u0435 \u043f\u0440\u043e\u0432\u0435\u0440\u044f\u0442\u044c",
+      "\u041c\u043d\u043e\u0433\u043e \u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440\u043e\u0432 \u2014 \u043f\u043e\u043f\u0443\u043b\u044f\u0440\u043d\u043e\u0435 \u043e\u0431\u044a\u044f\u0432\u043b\u0435\u043d\u0438\u0435, \u0432\u043e\u0437\u043c\u043e\u0436\u043d\u043e \u0446\u0435\u043d\u0430 \u0445\u043e\u0440\u043e\u0448\u0430\u044f. \u041e\u0431\u044a\u044f\u0432\u043b\u0435\u043d\u0438\u044f \u043f\u043e\u0441\u0442\u0430\u0440\u0448\u0435 \u0441 \u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440\u0430\u043c\u0438 \u043c\u0435\u0436\u0434\u0443 \u044d\u0442\u0438\u043c\u0438 \u0434\u0432\u0443\u043c\u044f \u0447\u0438\u0441\u043b\u0430\u043c\u0438 \u043e\u0442\u0441\u0435\u0438\u0432\u0430\u044e\u0442\u0441\u044f (\u0432 \u0436\u0443\u0440\u043d\u0430\u043b\u0435 \u2014 \u00ab\u043d\u0435 \u043d\u043e\u0432\u043e\u0435, \u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440\u043e\u0432 N\u00bb)."],
+    ["send_price_drops", "\u0421\u043e\u043e\u0431\u0449\u0430\u0442\u044c \u043e \u043f\u0430\u0434\u0435\u043d\u0438\u0438 \u0446\u0435\u043d\u044b", "",
+      "\u0415\u0441\u043b\u0438 \u0443 \u0443\u0436\u0435 \u043f\u0440\u0438\u0441\u043b\u0430\u043d\u043d\u043e\u0433\u043e \u0438\u043b\u0438 \u043e\u0442\u0441\u0435\u044f\u043d\u043d\u043e\u0433\u043e \u043f\u043e \u0446\u0435\u043d\u0435 \u043e\u0431\u044a\u044f\u0432\u043b\u0435\u043d\u0438\u044f \u0446\u0435\u043d\u0430 \u0441\u043d\u0438\u0437\u0438\u043b\u0430\u0441\u044c \u2014 \u043f\u0440\u0438\u0441\u043b\u0430\u0442\u044c \u00ab\u{1f4c9} \u041f\u0410\u0414\u0415\u041d\u0418\u0415 \u0426\u0415\u041d\u042b\u00bb."],
+    ["maximum_messages_per_history_scan", "\u0421\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0439 \u043f\u0440\u0438 \u043f\u0435\u0440\u0432\u043e\u043c \u043f\u0440\u043e\u0445\u043e\u0434\u0435, \u043d\u0435 \u0431\u043e\u043b\u044c\u0448\u0435", "",
+      "\u0417\u0430\u0449\u0438\u0442\u0430 \u043e\u0442 \u043b\u0430\u0432\u0438\u043d\u044b \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0439, \u043a\u043e\u0433\u0434\u0430 \u0434\u043e\u0431\u0430\u0432\u043b\u044f\u0435\u0448\u044c \u043f\u043e\u0438\u0441\u043a \u0441 \u00ab\u0418\u0441\u0442\u043e\u0440\u0438\u0435\u0439\u00bb. \u041e\u0441\u0442\u0430\u043b\u044c\u043d\u044b\u0435 \u043f\u043e\u043c\u0435\u0447\u0430\u044e\u0442\u0441\u044f \u043f\u0440\u043e\u043f\u0443\u0449\u0435\u043d\u043d\u044b\u043c\u0438."],
+    ["description_length_in_message", "\u0414\u043b\u0438\u043d\u0430 \u043e\u043f\u0438\u0441\u0430\u043d\u0438\u044f \u0432 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0438, \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432", "",
+      "\u0421\u043a\u043e\u043b\u044c\u043a\u043e \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432 \u043e\u043f\u0438\u0441\u0430\u043d\u0438\u044f \u043f\u043e\u043a\u0430\u0437\u044b\u0432\u0430\u0442\u044c \u0432 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0438 \u043e \u043d\u0430\u0445\u043e\u0434\u043a\u0435."],
+  ] },
+  { title: "\u0420\u044b\u043d\u043e\u043a", keys: [
+    ["market_price_days", "\u0421\u0447\u0438\u0442\u0430\u0442\u044c \u0440\u044b\u043d\u043e\u043a \u0437\u0430, \u0434\u043d\u0435\u0439", "",
+      "\u0421\u0440\u0435\u0434\u043d\u044f\u044f \u0446\u0435\u043d\u0430 \u043c\u043e\u0434\u0435\u043b\u0438 \u0441\u0447\u0438\u0442\u0430\u0435\u0442\u0441\u044f \u043f\u043e \u043e\u0431\u044a\u044f\u0432\u043b\u0435\u043d\u0438\u044f\u043c, \u0443\u0432\u0438\u0434\u0435\u043d\u043d\u044b\u043c \u0437\u0430 \u0441\u0442\u043e\u043b\u044c\u043a\u043e \u0434\u043d\u0435\u0439. \u041c\u043e\u0434\u0435\u043b\u044c \u043e\u043f\u0440\u0435\u0434\u0435\u043b\u044f\u0435\u0442\u0441\u044f \u043f\u043e \u00ab\u041b\u0438\u043c\u0438\u0442\u0430\u043c \u043c\u043e\u0434\u0435\u043b\u0435\u0439\u00bb \u043f\u0440\u043e\u0444\u0438\u043b\u044f."],
+    ["market_minimum_listings", "\u041c\u0438\u043d\u0438\u043c\u0443\u043c \u043e\u0431\u044a\u044f\u0432\u043b\u0435\u043d\u0438\u0439 \u0434\u043b\u044f \u043e\u0446\u0435\u043d\u043a\u0438", "",
+      "\u041f\u043e\u043a\u0430 \u043e\u0431\u044a\u044f\u0432\u043b\u0435\u043d\u0438\u0439 \u043c\u043e\u0434\u0435\u043b\u0438 \u043c\u0435\u043d\u044c\u0448\u0435, \u043e\u0446\u0435\u043d\u043a\u0443 \u00ab\u0434\u0451\u0448\u0435\u0432\u043e / \u043d\u043e\u0440\u043c\u0430\u043b\u044c\u043d\u043e / \u0437\u0430\u0432\u044b\u0448\u0435\u043d\u043e\u00bb \u0431\u043e\u0442 \u043d\u0435 \u0441\u0442\u0430\u0432\u0438\u0442 \u2014 \u043c\u0430\u043b\u043e \u0434\u0430\u043d\u043d\u044b\u0445."],
+    ["cheap_below_market_percent", "\u00ab\u0414\u0451\u0448\u0435\u0432\u043e\u00bb \u2014 \u043d\u0438\u0436\u0435 \u0440\u044b\u043d\u043a\u0430 \u043d\u0430, %", "",
+      "\u041d\u0430\u0441\u043a\u043e\u043b\u044c\u043a\u043e \u043d\u0438\u0436\u0435 \u0441\u0440\u0435\u0434\u043d\u0435\u0439 \u0446\u0435\u043d\u044b \u043e\u0431\u044a\u044f\u0432\u043b\u0435\u043d\u0438\u0435 \u0441\u0447\u0438\u0442\u0430\u0435\u0442\u0441\u044f \u0434\u0435\u0448\u0451\u0432\u044b\u043c. \u0421 \u043f\u0435\u0440\u0435\u043a\u043b\u044e\u0447\u0430\u0442\u0435\u043b\u0435\u043c \u00ab\u0421\u043a\u0440\u044b\u0432\u0430\u0442\u044c \u043f\u043e\u0434\u043e\u0437\u0440\u0438\u0442\u0435\u043b\u044c\u043d\u043e \u0434\u0435\u0448\u0451\u0432\u044b\u0435\u00bb \u0432 \u043f\u0440\u043e\u0444\u0438\u043b\u0435 \u0442\u0430\u043a\u0438\u0435 \u043e\u0442\u0441\u0435\u0438\u0432\u0430\u044e\u0442\u0441\u044f \u2014 \u0447\u0430\u0441\u0442\u043e \u044d\u0442\u043e \u043c\u043e\u0448\u0435\u043d\u043d\u0438\u043a\u0438 \u0438\u043b\u0438 \u043d\u0435\u0440\u0430\u0431\u043e\u0447\u0435\u0435."],
+    ["expensive_above_market_percent", "\u00ab\u0417\u0430\u0432\u044b\u0448\u0435\u043d\u043d\u0430\u044f\u00bb \u2014 \u0432\u044b\u0448\u0435 \u0440\u044b\u043d\u043a\u0430 \u043d\u0430, %", "",
+      "\u041d\u0430\u0441\u043a\u043e\u043b\u044c\u043a\u043e \u0432\u044b\u0448\u0435 \u0441\u0440\u0435\u0434\u043d\u0435\u0439 \u0446\u0435\u043d\u044b \u2014 \u00ab\u0437\u0430\u0432\u044b\u0448\u0435\u043d\u043d\u0430\u044f\u00bb. \u0421 \u043f\u0435\u0440\u0435\u043a\u043b\u044e\u0447\u0430\u0442\u0435\u043b\u0435\u043c \u00ab\u0421\u043a\u0440\u044b\u0432\u0430\u0442\u044c \u0437\u0430\u0432\u044b\u0448\u0435\u043d\u043d\u044b\u0435\u00bb \u0432 \u043f\u0440\u043e\u0444\u0438\u043b\u0435 \u0442\u0430\u043a\u0438\u0435 \u043e\u0442\u0441\u0435\u0438\u0432\u0430\u044e\u0442\u0441\u044f."],
+  ] },
+  { title: "\u0420\u0430\u0437\u0432\u0435\u0434\u043a\u0430 \u0446\u0435\u043d (/scout)", keys: [
+    ["scout_pages", "\u0421\u0442\u0440\u0430\u043d\u0438\u0446 \u0432\u044b\u0434\u0430\u0447\u0438 \u043d\u0430 \u0440\u0430\u0437\u0432\u0435\u0434\u043a\u0443", "\u041d\u0430 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0435 \u043e\u043a\u043e\u043b\u043e 50 \u043e\u0431\u044a\u044f\u0432\u043b\u0435\u043d\u0438\u0439",
+      "\u041a\u043e\u043c\u0430\u043d\u0434\u0430 /scout \u043f\u0440\u043e\u043b\u0438\u0441\u0442\u044b\u0432\u0430\u0435\u0442 \u0441\u0442\u043e\u043b\u044c\u043a\u043e \u0441\u0442\u0440\u0430\u043d\u0438\u0446 \u0432\u044b\u0434\u0430\u0447\u0438 \u043f\u043e\u0438\u0441\u043a\u0430 \u0438 \u0441\u0447\u0438\u0442\u0430\u0435\u0442 \u0446\u0435\u043d\u044b \u043f\u043e \u043a\u0430\u0436\u0434\u043e\u0439 \u043c\u043e\u0434\u0435\u043b\u0438. \u041a\u0430\u0440\u0442\u043e\u0447\u043a\u0438 \u043d\u0435 \u043e\u0442\u043a\u0440\u044b\u0432\u0430\u044e\u0442\u0441\u044f, \u043f\u043e\u044d\u0442\u043e\u043c\u0443 \u0440\u0430\u0437\u0432\u0435\u0434\u043a\u0430 \u043d\u0430\u0433\u0440\u0443\u0436\u0430\u0435\u0442 \u0410\u0432\u0438\u0442\u043e \u043a\u0430\u043a \u043f\u0430\u0440\u0430 \u043c\u0438\u043d\u0443\u0442 \u043e\u0431\u044b\u0447\u043d\u043e\u0439 \u0440\u0430\u0431\u043e\u0442\u044b. \u0411\u043e\u043b\u044c\u0448\u0435 \u0441\u0442\u0440\u0430\u043d\u0438\u0446 \u2014 \u0442\u043e\u0447\u043d\u0435\u0435 \u043c\u0435\u0434\u0438\u0430\u043d\u044b, \u043d\u043e \u0434\u043e\u043b\u044c\u0448\u0435 \u0438 \u0431\u043e\u043b\u044c\u0448\u0435 \u0437\u0430\u0433\u0440\u0443\u0437\u043e\u043a. \u0420\u0430\u0437\u0443\u043c\u043d\u043e: 3\u20135. \u0412 \u043a\u043e\u043c\u0430\u043d\u0434\u0435 \u043c\u043e\u0436\u043d\u043e \u0443\u043a\u0430\u0437\u0430\u0442\u044c \u0441\u0432\u043e\u0451 \u0447\u0438\u0441\u043b\u043e, \u043d\u0430\u043f\u0440\u0438\u043c\u0435\u0440 /scout gpu 5 (\u043d\u0435 \u0431\u043e\u043b\u044c\u0448\u0435 10)."],
+    ["scout_minimum_listings", "\u041c\u043e\u0434\u0435\u043b\u044c \u0432 \u043e\u0442\u0447\u0451\u0442\u0435, \u0435\u0441\u043b\u0438 \u043e\u0431\u044a\u044f\u0432\u043b\u0435\u043d\u0438\u0439 \u043d\u0435 \u043c\u0435\u043d\u044c\u0448\u0435", "",
+      "\u041c\u0435\u0434\u0438\u0430\u043d\u0430 \u043f\u043e \u043e\u0434\u043d\u043e\u043c\u0443-\u0434\u0432\u0443\u043c \u043e\u0431\u044a\u044f\u0432\u043b\u0435\u043d\u0438\u044f\u043c \u043d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u0433\u043e\u0432\u043e\u0440\u0438\u0442 \u043e \u0440\u044b\u043d\u043a\u0435. \u041c\u043e\u0434\u0435\u043b\u0438 \u0441 \u043c\u0435\u043d\u044c\u0448\u0438\u043c \u0447\u0438\u0441\u043b\u043e\u043c \u043e\u0431\u044a\u044f\u0432\u043b\u0435\u043d\u0438\u0439 \u043d\u0435 \u043f\u043e\u043a\u0430\u0437\u044b\u0432\u0430\u044e\u0442\u0441\u044f \u043e\u0442\u0434\u0435\u043b\u044c\u043d\u043e\u0439 \u0441\u0442\u0440\u043e\u043a\u043e\u0439, \u043e\u0442\u0447\u0451\u0442 \u0442\u043e\u043b\u044c\u043a\u043e \u0441\u043e\u043e\u0431\u0449\u0430\u0435\u0442, \u0441\u043a\u043e\u043b\u044c\u043a\u043e \u0438\u0445."],
+  ] },
+  { title: "\u0411\u0440\u043e\u043d\u0438", keys: [
+    ["reserved_recheck_interval_minutes", "\u041f\u0440\u043e\u0432\u0435\u0440\u044f\u0442\u044c \u0431\u0440\u043e\u043d\u044c \u043a\u0430\u0436\u0434\u044b\u0435, \u043c\u0438\u043d", "",
+      "\u041a\u0430\u043a \u0447\u0430\u0441\u0442\u043e \u043e\u0442\u043a\u0440\u044b\u0432\u0430\u0442\u044c \u043a\u0430\u0440\u0442\u043e\u0447\u043a\u0443 \u0437\u0430\u0431\u0440\u043e\u043d\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u043e\u0433\u043e \u043e\u0431\u044a\u044f\u0432\u043b\u0435\u043d\u0438\u044f, \u0447\u0442\u043e\u0431\u044b \u0443\u0437\u043d\u0430\u0442\u044c, \u043d\u0435 \u0441\u043d\u044f\u043b\u0438 \u043b\u0438 \u0431\u0440\u043e\u043d\u044c. \u041a\u0430\u0436\u0434\u0430\u044f \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u2014 \u043e\u0434\u043d\u0430 \u043a\u0430\u0440\u0442\u043e\u0447\u043a\u0430 \u0438\u0437 \u043b\u0438\u043c\u0438\u0442\u0430 \u00ab\u0432 \u0447\u0430\u0441\u00bb."],
+    ["reserved_watch_days", "\u0421\u043b\u0435\u0434\u0438\u0442\u044c \u0437\u0430 \u0431\u0440\u043e\u043d\u044c\u044e, \u0434\u043d\u0435\u0439", "",
+      "\u0421\u043a\u043e\u043b\u044c\u043a\u043e \u0434\u043d\u0435\u0439 \u0436\u0434\u0430\u0442\u044c \u0441\u043d\u044f\u0442\u0438\u044f \u0431\u0440\u043e\u043d\u0438, \u043f\u043e\u0442\u043e\u043c \u043f\u0435\u0440\u0435\u0441\u0442\u0430\u0442\u044c \u043f\u0440\u043e\u0432\u0435\u0440\u044f\u0442\u044c."],
+  ] },
+  { title: "\u041a\u0430\u043f\u0447\u0430 \u0438 \u0431\u043b\u043e\u043a\u0438\u0440\u043e\u0432\u043a\u0438", keys: [
+    ["captcha_auto_wait_seconds", "\u0416\u0434\u0430\u0442\u044c \u0430\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0443\u044e \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0443, \u0441", "",
+      "\u0427\u0430\u0441\u0442\u043e \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u0410\u0432\u0438\u0442\u043e \u043f\u0440\u043e\u0445\u043e\u0434\u0438\u0442 \u0441\u0430\u043c\u0430 \u0447\u0435\u0440\u0435\u0437 \u043d\u0435\u0441\u043a\u043e\u043b\u044c\u043a\u043e \u0441\u0435\u043a\u0443\u043d\u0434. \u0421\u0442\u043e\u043b\u044c\u043a\u043e \u0431\u043e\u0442 \u0436\u0434\u0451\u0442, \u043f\u0440\u0435\u0436\u0434\u0435 \u0447\u0435\u043c \u043d\u0430\u043f\u0438\u0441\u0430\u0442\u044c \u0442\u0435\u0431\u0435 \u043f\u0440\u043e \u043a\u0430\u043f\u0447\u0443."],
+    ["captcha_manual_wait_minutes", "\u0416\u0434\u0430\u0442\u044c, \u043f\u043e\u043a\u0430 \u0440\u0435\u0448\u0443 \u043a\u0430\u043f\u0447\u0443, \u043c\u0438\u043d", "",
+      "\u0421\u043a\u043e\u043b\u044c\u043a\u043e \u0436\u0434\u0430\u0442\u044c, \u043f\u043e\u043a\u0430 \u0442\u044b \u0440\u0435\u0448\u0438\u0448\u044c \u043a\u0430\u043f\u0447\u0443 \u0432 \u043e\u043a\u043d\u0435 \u0431\u0440\u0430\u0443\u0437\u0435\u0440\u0430 \u043d\u0430 \u0441\u0435\u0440\u0432\u0435\u0440\u0435. \u041d\u0435 \u0440\u0435\u0448\u0438\u043b \u2014 \u0431\u043e\u0442 \u0437\u0430\u043a\u0440\u044b\u0432\u0430\u0435\u0442 \u0431\u0440\u0430\u0443\u0437\u0435\u0440 \u0438 \u0434\u0435\u043b\u0430\u0435\u0442 \u043f\u0430\u0443\u0437\u0443 (\u043d\u0438\u0436\u0435)."],
+    ["block_pause_minutes", "\u041f\u0435\u0440\u0432\u0430\u044f \u043f\u0430\u0443\u0437\u0430 \u043f\u043e\u0441\u043b\u0435 \u0431\u043b\u043e\u043a\u0438\u0440\u043e\u0432\u043a\u0438, \u043c\u0438\u043d", "\u0414\u0430\u043b\u044c\u0448\u0435 \u0443\u0434\u0432\u0430\u0438\u0432\u0430\u0435\u0442\u0441\u044f",
+      "\u041f\u0430\u0443\u0437\u0430 \u043f\u043e\u0441\u043b\u0435 \u043a\u0430\u043f\u0447\u0438, \u043a\u043e\u0442\u043e\u0440\u0443\u044e \u043d\u0435 \u0440\u0435\u0448\u0438\u043b\u0438. \u041a\u0430\u0436\u0434\u0430\u044f \u0441\u043b\u0435\u0434\u0443\u044e\u0449\u0430\u044f \u043f\u043e\u0434\u0440\u044f\u0434 \u2014 \u0432\u0434\u0432\u043e\u0435 \u0434\u043b\u0438\u043d\u043d\u0435\u0435: 30, 60, 120\u2026"],
+    ["maximum_block_pause_minutes", "\u0421\u0430\u043c\u0430\u044f \u0434\u043b\u0438\u043d\u043d\u0430\u044f \u043f\u0430\u0443\u0437\u0430, \u043c\u0438\u043d", "",
+      "\u041f\u043e\u0442\u043e\u043b\u043e\u043a \u0434\u043b\u044f \u0443\u0434\u0432\u043e\u0435\u043d\u0438\u044f \u043f\u0430\u0443\u0437\u044b."],
+    ["block_counter_reset_hours", "\u041f\u0430\u0443\u0437\u0430 \u0441\u043d\u043e\u0432\u0430 \u043a\u043e\u0440\u043e\u0442\u043a\u0430\u044f \u0447\u0435\u0440\u0435\u0437, \u0447 \u0431\u0435\u0437 \u0431\u043b\u043e\u043a\u0438\u0440\u043e\u0432\u043e\u043a", "",
+      "\u0415\u0441\u043b\u0438 \u0441\u0442\u043e\u043b\u044c\u043a\u043e \u0447\u0430\u0441\u043e\u0432 \u043d\u0435 \u0431\u044b\u043b\u043e \u0431\u043b\u043e\u043a\u0438\u0440\u043e\u0432\u043e\u043a, \u0441\u043b\u0435\u0434\u0443\u044e\u0449\u0430\u044f \u043f\u0430\u0443\u0437\u0430 \u0441\u043d\u043e\u0432\u0430 \u043d\u0430\u0447\u043d\u0451\u0442\u0441\u044f \u0441 \u043f\u0435\u0440\u0432\u043e\u0439."],
+  ] },
+  { title: "\u0411\u0440\u0430\u0443\u0437\u0435\u0440 \u2014 \u043f\u043e\u0441\u043b\u0435 \u043f\u0435\u0440\u0435\u0437\u0430\u043f\u0443\u0441\u043a\u0430 \u0431\u043e\u0442\u0430", keys: [
+    ["browser_channel", "\u0411\u0440\u0430\u0443\u0437\u0435\u0440", "Edge \u0435\u0441\u0442\u044c \u0432 \u043b\u044e\u0431\u043e\u0439 Windows",
+      "\u0412\u0441\u0442\u0440\u043e\u0435\u043d\u043d\u044b\u0439 Chromium \u043f\u0440\u0435\u0434\u0441\u0442\u0430\u0432\u043b\u044f\u0435\u0442\u0441\u044f \u0441\u0430\u0439\u0442\u0443 \u0440\u0435\u0434\u043a\u0438\u043c \u0431\u0440\u0430\u0443\u0437\u0435\u0440\u043e\u043c \u00abChromium\u00bb, \u0430 \u043e\u0431\u044b\u0447\u043d\u044b\u0435 \u043f\u043e\u0441\u0435\u0442\u0438\u0442\u0435\u043b\u0438 \u0445\u043e\u0434\u044f\u0442 \u0441 Chrome \u0438\u043b\u0438 Edge \u2014 \u0430\u043d\u0442\u0438\u0431\u043e\u0442 \u044d\u0442\u043e \u0432\u0438\u0434\u0438\u0442. Edge \u0441\u0442\u043e\u0438\u0442 \u0432 \u043a\u0430\u0436\u0434\u043e\u0439 Windows, Chrome \u2014 \u0435\u0441\u043b\u0438 \u0442\u044b \u0435\u0433\u043e \u0441\u0442\u0430\u0432\u0438\u043b. \u0423 \u043a\u0430\u0436\u0434\u043e\u0433\u043e \u0431\u0440\u0430\u0443\u0437\u0435\u0440\u0430 \u0441\u0432\u043e\u044f \u043f\u0430\u043f\u043a\u0430 \u043f\u0440\u043e\u0444\u0438\u043b\u044f, \u043f\u043e\u044d\u0442\u043e\u043c\u0443 \u043f\u043e\u0441\u043b\u0435 \u043f\u0435\u0440\u0435\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u044f \u0410\u0432\u0438\u0442\u043e \u0443\u0432\u0438\u0434\u0438\u0442 \u00ab\u043d\u043e\u0432\u043e\u0435 \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u043e\u00bb \u0438 \u043c\u043e\u0436\u0435\u0442 \u043e\u0434\u0438\u043d \u0440\u0430\u0437 \u0441\u043f\u0440\u043e\u0441\u0438\u0442\u044c \u043a\u0430\u043f\u0447\u0443. \u0415\u0441\u043b\u0438 \u0432\u044b\u0431\u0440\u0430\u043d\u043d\u044b\u0439 \u0431\u0440\u0430\u0443\u0437\u0435\u0440 \u043d\u0435 \u0437\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u0441\u044f, \u0431\u043e\u0442 \u043d\u0430\u043f\u0438\u0448\u0435\u0442 \u043e\u0431 \u044d\u0442\u043e\u043c \u0438 \u043f\u0440\u043e\u0434\u043e\u043b\u0436\u0438\u0442 \u0432\u043e \u0432\u0441\u0442\u0440\u043e\u0435\u043d\u043d\u043e\u043c Chromium."],
+    ["headless_browser", "\u0411\u0440\u0430\u0443\u0437\u0435\u0440 \u0431\u0435\u0437 \u043e\u043a\u043d\u0430", "\u0410\u0432\u0438\u0442\u043e \u0442\u0430\u043a\u043e\u0439 \u043f\u043e\u0447\u0442\u0438 \u0441\u0440\u0430\u0437\u0443 \u0431\u043b\u043e\u043a\u0438\u0440\u0443\u0435\u0442",
+      "\u0411\u0435\u0437 \u043e\u043a\u043d\u0430 \u0431\u0440\u0430\u0443\u0437\u0435\u0440 \u043d\u0435 \u0432\u0438\u0434\u0435\u043d \u043d\u0430 \u0441\u0435\u0440\u0432\u0435\u0440\u0435, \u043d\u043e \u0410\u0432\u0438\u0442\u043e \u0440\u0430\u0441\u043f\u043e\u0437\u043d\u0430\u0451\u0442 \u0442\u0430\u043a\u043e\u0439 \u0440\u0435\u0436\u0438\u043c \u0438 \u043f\u043e\u0447\u0442\u0438 \u0441\u0440\u0430\u0437\u0443 \u043f\u043e\u043a\u0430\u0437\u044b\u0432\u0430\u0435\u0442 \u043a\u0430\u043f\u0447\u0443, \u0430 \u0440\u0435\u0448\u0438\u0442\u044c \u0435\u0451 \u043d\u0435\u0433\u0434\u0435. \u041e\u0441\u0442\u0430\u0432\u044c \u0432\u044b\u043a\u043b\u044e\u0447\u0435\u043d\u043d\u044b\u043c."],
+    ["block_images_and_fonts", "\u041d\u0435 \u0433\u0440\u0443\u0437\u0438\u0442\u044c \u043a\u0430\u0440\u0442\u0438\u043d\u043a\u0438", "",
+      "\u042d\u043a\u043e\u043d\u043e\u043c\u0438\u0442 \u0442\u0440\u0430\u0444\u0438\u043a, \u043d\u043e \u0431\u0440\u0430\u0443\u0437\u0435\u0440, \u043a\u043e\u0442\u043e\u0440\u044b\u0439 \u043d\u0435 \u0433\u0440\u0443\u0437\u0438\u0442 \u043a\u0430\u0440\u0442\u0438\u043d\u043a\u0438, \u0432\u044b\u0433\u043b\u044f\u0434\u0438\u0442 \u0434\u043b\u044f \u0430\u043d\u0442\u0438\u0431\u043e\u0442\u0430 \u043f\u043e\u0434\u043e\u0437\u0440\u0438\u0442\u0435\u043b\u044c\u043d\u043e. \u041b\u0443\u0447\u0448\u0435 \u0432\u044b\u043a\u043b\u044e\u0447\u0435\u043d\u043e."],
+    ["browser_restart_hours", "\u041f\u0435\u0440\u0435\u0437\u0430\u043f\u0443\u0441\u043a\u0430\u0442\u044c \u0431\u0440\u0430\u0443\u0437\u0435\u0440 \u043a\u0430\u0436\u0434\u044b\u0435, \u0447", "",
+      "\u0411\u0440\u0430\u0443\u0437\u0435\u0440 \u043f\u0435\u0440\u0435\u0437\u0430\u043f\u0443\u0441\u043a\u0430\u0435\u0442\u0441\u044f \u0440\u0430\u0437 \u0432 \u0441\u0442\u043e\u043b\u044c\u043a\u043e \u0447\u0430\u0441\u043e\u0432, \u0447\u0442\u043e\u0431\u044b \u043d\u0435 \u043a\u043e\u043f\u0438\u043b\u0430\u0441\u044c \u043f\u0430\u043c\u044f\u0442\u044c. 0 \u2014 \u043d\u0435 \u043f\u0435\u0440\u0435\u0437\u0430\u043f\u0443\u0441\u043a\u0430\u0442\u044c."],
+    ["browser_proxy_url", "\u041f\u0440\u043e\u043a\u0441\u0438 \u0431\u0440\u0430\u0443\u0437\u0435\u0440\u0430", "\u041f\u0443\u0441\u0442\u043e \u2014 \u043d\u0430\u043f\u0440\u044f\u043c\u0443\u044e",
+      "\u0410\u0434\u0440\u0435\u0441 \u043f\u0440\u043e\u043a\u0441\u0438, \u0435\u0441\u043b\u0438 \u0410\u0432\u0438\u0442\u043e \u043d\u0443\u0436\u043d\u043e \u043e\u0442\u043a\u0440\u044b\u0432\u0430\u0442\u044c \u043d\u0435 \u043d\u0430\u043f\u0440\u044f\u043c\u0443\u044e. \u041f\u0443\u0441\u0442\u043e \u2014 \u043d\u0430\u043f\u0440\u044f\u043c\u0443\u044e \u0441 \u0434\u043e\u043c\u0430\u0448\u043d\u0435\u0433\u043e IP, \u0442\u0430\u043a \u0438 \u043d\u0443\u0436\u043d\u043e."],
+  ] },
+];
+// Set in each search on the "\u041f\u043e\u0438\u0441\u043a\u0438" tab; one place for one setting.
+const HIDDEN_GENERAL_KEYS = ["default_check_interval_seconds"];
+
+const AVITO_LINK_PATTERN = /^https?:\/\/([a-z0-9-]+\.)*avito\.ru(\/|$)/i;
+const NAME_PATTERN = /^\S{1,40}$/;
+const SEARCH_NUMBER_FIELDS = ["check_interval_seconds", "minimum_price", "maximum_price", "history_hours", "history_pages"];
+const FORM_DATA_PREFIX = "mw1:";
+const SEND_DATA_LIMIT = 4096;
+
+const webApp = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+const inTelegram = Boolean(webApp && webApp.platform && webApp.platform !== "unknown");
+
+let original = null;
+let draft = null;
+let currentTab = "searches";
+let currentProfile = "";
+let creatingProfile = false;
+let currentPalette = "telegram";
+const newSearches = new WeakSet();
+const openDetails = new Set();
+const autoPatternRules = new WeakSet();
+const openPatterns = new WeakSet();
+
+// ----- small helpers -----------------------------------------------------------------
+
+function element(tag, attributes, children) {
+  const node = document.createElement(tag);
+  for (const [name, value] of Object.entries(attributes || {})) {
+    if (value === undefined || value === null || value === false) continue;
+    if (name === "className") node.className = value;
+    else if (name === "text") node.textContent = value;
+    else if (name.startsWith("on")) node.addEventListener(name.slice(2), value);
+    else if (name === "value") node.value = value;
+    else if (name === "checked") node.checked = value;
+    else node.setAttribute(name, value === true ? "" : value);
+  }
+  for (const child of [].concat(children || [])) {
+    if (child === null || child === undefined || child === false) continue;
+    node.appendChild(typeof child === "string" ? document.createTextNode(child) : child);
+  }
+  return node;
+}
+
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function stableStringify(value) {
+  if (Array.isArray(value)) return "[" + value.map(stableStringify).join(",") + "]";
+  if (value && typeof value === "object") {
+    return "{" + Object.keys(value).sort().map((key) => JSON.stringify(key) + ":" + stableStringify(value[key])).join(",") + "}";
+  }
+  return JSON.stringify(value);
+}
+
+function linesOf(text) {
+  return String(text || "").split("\n").map((line) => line.trim()).filter(Boolean);
+}
+
+function integerOrNull(value, allowNegative) {
+  const text = String(value === undefined || value === null ? "" : value).trim();
+  if (text === "") return 0;
+  if (!(allowNegative ? /^-?\d+$/ : /^\d+$/).test(text)) return null;
+  return parseInt(text, 10);
+}
+
+function escapeRegularExpression(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function patternFromLabel(label) {
+  const tokens = String(label || "").toLowerCase().replace(/\u0451/g, "\u0435").split(/[\s\-_/]+/).filter(Boolean);
+  if (!tokens.length) return "";
+  let start = tokens.findIndex((token) => /\d{3,}/.test(token));
+  if (start < 0) start = tokens.findIndex((token) => /\d/.test(token));
+  if (start < 0) return tokens.map(escapeRegularExpression).join("\\s*-?\\s*");
+  const core = [tokens[start]];
+  for (let index = start + 1; index < tokens.length && !/\d/.test(tokens[index]); index += 1) core.push(tokens[index]);
+  const body = core.map(escapeRegularExpression).join("\\s*-?\\s*");
+  const before = /^\d/.test(core[0]) ? "(?<!\\d)" : "";
+  const after = /\d$/.test(core[core.length - 1]) ? "(?!\\d)" : "(?![a-z\u0430-\u044f])";
+  return before + body + after;
+}
+
+function base64UrlToBytes(text) {
+  let normalized = text.replace(/-/g, "+").replace(/_/g, "/");
+  while (normalized.length % 4) normalized += "=";
+  const binary = atob(normalized);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  return bytes;
+}
+
+function bytesToBase64Url(bytes) {
+  let binary = "";
+  for (let index = 0; index < bytes.length; index += 0x8000) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(index, index + 0x8000));
+  }
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+async function inflateText(bytes) {
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate"));
+  return new TextDecoder().decode(await new Response(stream).arrayBuffer());
+}
+
+async function deflateText(text) {
+  const stream = new Blob([new TextEncoder().encode(text)]).stream().pipeThrough(new CompressionStream("deflate"));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+function hashData() {
+  for (const part of location.hash.replace(/^#/, "").split("&")) {
+    if (part.startsWith("mw=")) return part.slice(3);
+  }
+  return "";
+}
+
+let noticeTimer = null;
+function showNotice(text, kind) {
+  const notice = document.getElementById("notice");
+  notice.textContent = text;
+  notice.className = "notice" + (kind === "error" ? " error" : "");
+  notice.hidden = false;
+  clearTimeout(noticeTimer);
+  noticeTimer = setTimeout(() => { notice.hidden = true; }, 6000);
+  if (kind === "error" && webApp && webApp.HapticFeedback) {
+    try { webApp.HapticFeedback.notificationOccurred("error"); } catch (error) { /* older clients */ }
+  }
+}
+
+// ----- the edited copy of the settings --------------------------------------------------
+
+function toDraft(snapshot) {
+  const copy = clone(snapshot);
+  for (const search of copy.searches) {
+    for (const field of SEARCH_NUMBER_FIELDS) {
+      if (["check_interval_seconds", "minimum_price", "maximum_price"].includes(field) && !search[field]) search[field] = "";
+      else search[field] = String(search[field]);
+    }
+  }
+  for (const profile of Object.values(copy.profiles)) {
+    profile.flag_list = Object.entries(profile.flag_phrases || {}).map(([name, phrases]) => ({ name, phrases: phrases.slice() }));
+    delete profile.flag_phrases;
+    for (const rule of profile.price_rules) rule.maximum_price = rule.maximum_price ? String(rule.maximum_price) : "";
+  }
+  for (const [key, type] of Object.entries(copy.general_types)) {
+    if (type !== "bool" && key in copy.general) copy.general[key] = String(copy.general[key]);
+  }
+  return copy;
+}
+
+function normalizedSearch(search) {
+  const result = { name: String(search.name || "").trim(), url: String(search.url || "").trim(), profile: search.profile, enabled: Boolean(search.enabled) };
+  for (const field of SEARCH_NUMBER_FIELDS) result[field] = integerOrNull(search[field], field === "history_hours");
+  return result;
+}
+
+function normalizedProfile(profile) {
+  const flags = {};
+  for (const flag of profile.flag_list) {
+    const name = flag.name.trim();
+    if (name) flags[name] = flag.phrases.slice();
+  }
+  const result = {
+    include_phrases: profile.include_phrases.slice(),
+    exclude_phrases: profile.exclude_phrases.slice(),
+    flag_phrases: flags,
+    price_rules: profile.price_rules.map((rule) => ({
+      label: rule.label.trim(), pattern: rule.pattern.trim(), maximum_price: integerOrNull(rule.maximum_price, false),
+    })),
+  };
+  for (const switchName of original.switches) result[switchName] = Boolean(profile[switchName]);
+  return result;
+}
+
+function typedGeneral(key, value) {
+  const type = original.general_types[key];
+  if (type === "bool") return Boolean(value);
+  if (type === "int") return integerOrNull(value, false);
+  if (type === "float") {
+    const text = String(value).trim().replace(",", ".");
+    return /^\d+(\.\d+)?$/.test(text) ? parseFloat(text) : null;
+  }
+  return String(value).trim();
+}
+
+function collectChanges() {
+  const data = {};
+  let count = 0;
+  const originalDraft = toDraft(original);
+  const searchesNow = draft.searches.map(normalizedSearch);
+  const searchesBefore = originalDraft.searches.map(normalizedSearch);
+  if (stableStringify(searchesNow) !== stableStringify(searchesBefore)) {
+    data.searches = searchesNow;
+    const before = new Map(searchesBefore.map((search) => [search.name, stableStringify(search)]));
+    const now = new Set(searchesNow.map((search) => search.name));
+    count += searchesNow.filter((search) => before.get(search.name) !== stableStringify(search)).length;
+    count += searchesBefore.filter((search) => !now.has(search.name)).length;
+  }
+  for (const [name, profile] of Object.entries(draft.profiles)) {
+    const now = normalizedProfile(profile);
+    const before = originalDraft.profiles[name] ? normalizedProfile(originalDraft.profiles[name]) : null;
+    if (!before || stableStringify(now) !== stableStringify(before)) {
+      (data.profiles = data.profiles || {})[name] = now;
+      count += 1;
+    }
+  }
+  const deleted = Object.keys(original.profiles).filter((name) => !(name in draft.profiles));
+  if (deleted.length) {
+    data.deleted_profiles = deleted;
+    count += deleted.length;
+  }
+  for (const key of Object.keys(original.general)) {
+    const now = typedGeneral(key, draft.general[key]);
+    if (stableStringify(now) !== stableStringify(original.general[key])) {
+      (data.general = data.general || {})[key] = now;
+      count += 1;
+    }
+  }
+  return { data, count };
+}
+
+function validationErrors() {
+  const errors = [];
+  const names = new Set();
+  draft.searches.forEach((search, index) => {
+    const name = String(search.name || "").trim();
+    if (!NAME_PATTERN.test(name)) errors.push(TEXT.errors.searchName(index + 1));
+    else if (names.has(name)) errors.push(TEXT.errors.searchDuplicate(name));
+    names.add(name);
+    const owner = name || "\u2116" + (index + 1);
+    if (!AVITO_LINK_PATTERN.test(String(search.url || "").trim())) errors.push(TEXT.errors.searchLink(owner));
+    const fieldLabels = { check_interval_seconds: TEXT.searchInterval, minimum_price: TEXT.priceFrom, maximum_price: TEXT.priceTo,
+      history_hours: TEXT.historyHours, history_pages: TEXT.historyPages };
+    for (const field of SEARCH_NUMBER_FIELDS) {
+      if (integerOrNull(search[field], field === "history_hours") === null) errors.push(TEXT.errors.number(fieldLabels[field], owner));
+    }
+    const interval = integerOrNull(search.check_interval_seconds, false);
+    if (interval !== null && interval > 0 && interval < 30) errors.push(TEXT.errors.interval(owner));
+    const pages = integerOrNull(search.history_pages, false);
+    if (pages !== null && (pages < 1 || pages > 20)) errors.push(TEXT.errors.historyPages(owner));
+  });
+  for (const [profileName, profile] of Object.entries(draft.profiles)) {
+    for (const rule of profile.price_rules) {
+      if (!rule.label.trim()) { errors.push(TEXT.errors.modelName(profileName)); continue; }
+      if (integerOrNull(rule.maximum_price, false) === null) errors.push(TEXT.errors.number(TEXT.modelName, rule.label));
+      try { new RegExp(rule.pattern.trim() || "(?!)"); } catch (error) { errors.push(TEXT.errors.modelPattern(rule.label, error.message)); }
+      if (!rule.pattern.trim()) errors.push(TEXT.errors.modelPattern(rule.label, "\u043f\u0443\u0441\u0442\u043e\u0439"));
+    }
+    if (profile.flag_list.some((flag) => !flag.name.trim() && flag.phrases.length)) errors.push(TEXT.errors.flagName(profileName));
+  }
+  for (const group of SETTING_GROUPS) {
+    for (const [key, label] of group.keys) {
+      if (key in draft.general && original.general_types[key] !== "text" && typedGeneral(key, draft.general[key]) === null) {
+        errors.push(TEXT.errors.general(label));
+      }
+    }
+  }
+  return errors;
+}
+
+// ----- save --------------------------------------------------------------------------
+
+function refreshSaveState() {
+  const { count } = collectChanges();
+  const errors = validationErrors();
+  document.getElementById("dirty-note").textContent = count ? TEXT.unsaved(count) : "";
+  const label = count > 1 ? TEXT.saveCount(count) : TEXT.save;
+  if (inTelegram) {
+    const button = webApp.MainButton;
+    if (!count) button.hide();
+    else {
+      button.setText(label);
+      if (errors.length) button.disable(); else button.enable();
+      button.show();
+    }
+    try { if (count) webApp.enableClosingConfirmation(); else webApp.disableClosingConfirmation(); } catch (error) { /* older clients */ }
+  } else if (original) {
+    const footer = document.getElementById("fallback-save");
+    const button = document.getElementById("fallback-save-button");
+    footer.hidden = !count;
+    button.textContent = label;
+    button.disabled = errors.length > 0;
+  }
+}
+
+async function save() {
+  const errors = validationErrors();
+  if (errors.length) { showNotice(errors[0], "error"); return; }
+  const { data, count } = collectChanges();
+  if (!count) return;
+  const payload = Object.assign({ format: 1, version: original.version }, data);
+  if (data.general) {
+    payload.general_labels = {};
+    for (const group of SETTING_GROUPS) {
+      for (const [key, label] of group.keys) if (key in data.general) payload.general_labels[key] = label;
+    }
+  }
+  const formData = FORM_DATA_PREFIX + bytesToBase64Url(await deflateText(JSON.stringify(payload)));
+  if (formData.length > SEND_DATA_LIMIT) { showNotice(TEXT.tooLarge, "error"); return; }
+  window.lastFormData = formData;
+  if (!inTelegram) { showNotice(TEXT.notInTelegram, "error"); return; }
+  try { webApp.disableClosingConfirmation(); } catch (error) { /* older clients */ }
+  webApp.MainButton.showProgress(false);
+  webApp.sendData(formData);
+}
+
+// ----- palette -----------------------------------------------------------------------
+
+function applyPalette(paletteId) {
+  const palette = PALETTES.find((item) => item.id === paletteId) || PALETTES[0];
+  currentPalette = palette.id;
+  const rootStyle = document.documentElement.style;
+  for (const name of PALETTE_VARIABLES) {
+    if (palette.colors) rootStyle.setProperty("--" + name, palette.colors[name]);
+    else rootStyle.removeProperty("--" + name);
+  }
+  document.documentElement.style.colorScheme = palette.scheme || "";
+  if (inTelegram) {
+    try {
+      const canUseHex = webApp.isVersionAtLeast("6.9");
+      webApp.setHeaderColor(palette.colors && canUseHex ? palette.colors.bg : "secondary_bg_color");
+      webApp.setBackgroundColor(palette.colors && canUseHex ? palette.colors.bg : "secondary_bg_color");
+      if (webApp.isVersionAtLeast("7.10")) webApp.setBottomBarColor(palette.colors ? palette.colors.bg : "secondary_bg_color");
+      webApp.MainButton.setParams(palette.colors
+        ? { color: palette.colors.accent, text_color: palette.colors["accent-ink"] }
+        : { color: webApp.themeParams.button_color, text_color: webApp.themeParams.button_text_color });
+    } catch (error) { /* older clients keep their own colors */ }
+  }
+}
+
+function rememberPalette(paletteId) {
+  try { localStorage.setItem(PALETTE_STORAGE_KEY, paletteId); } catch (error) { /* storage blocked */ }
+  if (inTelegram && webApp.CloudStorage && webApp.isVersionAtLeast("6.9")) {
+    try { webApp.CloudStorage.setItem(PALETTE_STORAGE_KEY, paletteId); } catch (error) { /* older clients */ }
+  }
+}
+
+function loadPalette() {
+  let stored = "";
+  try { stored = localStorage.getItem(PALETTE_STORAGE_KEY) || ""; } catch (error) { /* storage blocked */ }
+  applyPalette(stored || "telegram");
+  if (inTelegram && webApp.CloudStorage && webApp.isVersionAtLeast("6.9")) {
+    try {
+      webApp.CloudStorage.getItem(PALETTE_STORAGE_KEY, (error, value) => {
+        if (!error && value && value !== currentPalette) {
+          applyPalette(value);
+          if (currentTab === "look") render();
+        }
+      });
+    } catch (error) { /* older clients */ }
+  }
+}
+
+// ----- rendering ---------------------------------------------------------------------
+
+function groupTitle(text, extra) {
+  return element("div", { className: "group-title" }, [element("span", { text }), extra || null]);
+}
+
+function hint(text) {
+  return text ? element("div", { className: "hint", text }) : null;
+}
+
+function groupHint(text) {
+  return text ? element("div", { className: "hint group-hint", text }) : null;
+}
+
+function switchControl(checked, label, onChange) {
+  return element("label", { className: "switch" }, [
+    element("input", { type: "checkbox", checked, "aria-label": label, onchange: (event) => { onChange(event.target.checked); refreshSaveState(); } }),
+    element("span"),
+  ]);
+}
+
+function textInput(value, attributes, onInput) {
+  return element("input", Object.assign({ className: "input", value, autocomplete: "off", spellcheck: "false",
+    oninput: (event) => { onInput(event.target.value, event.target); refreshSaveState(); } }, attributes));
+}
+
+function numberInput(value, attributes, onInput, allowNegative) {
+  return textInput(value, Object.assign({ inputmode: allowNegative ? "text" : "numeric", className: "input short" }, attributes), (text, input) => {
+    input.classList.toggle("invalid", integerOrNull(text, allowNegative) === null);
+    onInput(text);
+  });
+}
+
+function textArea(lines, className, onInput, placeholder) {
+  return element("textarea", { className: "textarea" + (className ? " " + className : ""), placeholder, spellcheck: "false",
+    oninput: (event) => { onInput(event.target.value); refreshSaveState(); } }, lines);
+}
+
+function renderTabs() {
+  const tabs = document.getElementById("tabs");
+  tabs.replaceChildren(...Object.entries(TEXT.tabs).map(([id, label]) => element("button", {
+    className: "tab", type: "button", role: "tab", "aria-selected": String(id === currentTab), text: label,
+    onclick: () => { currentTab = id; renderTabs(); render(); window.scrollTo(0, 0); },
+  })));
+}
+
+function renderSearches() {
+  const nodes = [];
+  const profileNames = Object.keys(draft.profiles);
+  if (!draft.searches.length) nodes.push(element("div", { className: "empty", text: TEXT.noSearches }));
+  draft.searches.forEach((search, index) => {
+    const isNew = newSearches.has(search);
+    const nameNode = isNew
+      ? textInput(search.name, { className: "input name-input", placeholder: TEXT.newSearchName, "aria-label": TEXT.newSearchName }, (value) => { search.name = value; })
+      : element("span", { className: "search-name", text: search.name });
+    nodes.push(element("div", { className: "group", style: "margin-top: 16px" }, [
+      element("div", { className: "row row-line" }, [nameNode, switchControl(search.enabled, search.name, (value) => { search.enabled = value; })]),
+      element("div", { className: "row" }, [
+        element("label", { className: "field-label", text: TEXT.searchLink }),
+        textArea(search.url, "url", (value) => { search.url = value.trim(); }),
+        hint(TEXT.searchLinkHint),
+      ]),
+      element("div", { className: "row row-line" }, [
+        element("span", { className: "label", text: TEXT.searchProfile }),
+        element("select", { className: "select", style: "width: auto; max-width: 55%",
+          onchange: (event) => { search.profile = event.target.value; refreshSaveState(); } },
+        profileNames.map((name) => element("option", { value: name, text: name, selected: name === search.profile }))),
+      ]),
+      element("div", { className: "row" }, [
+        element("div", { className: "row-line" }, [
+          element("span", { className: "label", text: TEXT.searchInterval }),
+          element("span", { className: "suffix" }, [numberInput(search.check_interval_seconds, { "aria-label": TEXT.searchInterval },
+            (value) => { search.check_interval_seconds = value; }), TEXT.seconds]),
+        ]),
+        hint(TEXT.intervalHint),
+      ]),
+      element("div", { className: "row" }, [
+        element("div", { className: "pair" }, [
+          element("label", {}, [element("span", { className: "field-label", text: TEXT.priceFrom }),
+            numberInput(search.minimum_price, { className: "input", placeholder: "\u2014" }, (value) => { search.minimum_price = value; })]),
+          element("label", {}, [element("span", { className: "field-label", text: TEXT.priceTo }),
+            numberInput(search.maximum_price, { className: "input", placeholder: "\u2014" }, (value) => { search.maximum_price = value; })]),
+        ]),
+        hint(TEXT.priceHint),
+      ]),
+      element("div", { className: "row" }, [
+        element("div", { className: "pair" }, [
+          element("label", {}, [element("span", { className: "field-label", text: TEXT.historyHours }),
+            numberInput(search.history_hours, { className: "input" }, (value) => { search.history_hours = value; }, true)]),
+          element("label", {}, [element("span", { className: "field-label", text: TEXT.historyPages }),
+            numberInput(search.history_pages, { className: "input" }, (value) => { search.history_pages = value; })]),
+        ]),
+        hint(TEXT.historyHint),
+      ]),
+      element("div", { className: "row" }, [element("button", { type: "button", className: "text-button danger", text: TEXT.deleteSearch,
+        onclick: () => { draft.searches.splice(index, 1); render(); refreshSaveState(); } })]),
+    ]));
+  });
+  nodes.push(element("div", { className: "group", style: "margin-top: 22px" }, [element("div", { className: "add-row" }, [
+    element("button", { type: "button", className: "text-button", text: "+ " + TEXT.addSearch, onclick: () => {
+      const search = { name: "", url: "", profile: profileNames.includes("default") ? "default" : profileNames[0], enabled: true,
+        check_interval_seconds: String(draft.general.default_check_interval_seconds), minimum_price: "", maximum_price: "", history_hours: "0", history_pages: "3" };
+      newSearches.add(search);
+      draft.searches.push(search);
+      render();
+      refreshSaveState();
+    } }),
+  ])]));
+  return nodes;
+}
+
+function renderRule(profile, rule, index) {
+  const patternOpen = openPatterns.has(rule);
+  const patternInput = textInput(rule.pattern, { placeholder: "(?<!\\d)1070\\s*-?\\s*ti", "aria-label": TEXT.pattern }, (value) => {
+    rule.pattern = value;
+    autoPatternRules.delete(rule);
+  });
+  return element("div", { className: "row" }, [
+    element("div", { className: "tag-row" }, [
+      element("div", { className: "tag" }, [textInput(rule.label, { placeholder: TEXT.modelName, "aria-label": TEXT.modelName, className: "" }, (value) => {
+        rule.label = value;
+        if (autoPatternRules.has(rule) || !rule.pattern.trim()) {
+          autoPatternRules.add(rule);
+          rule.pattern = patternFromLabel(value);
+          patternInput.value = rule.pattern;
+        }
+      })]),
+      element("span", { className: "price-box" }, [
+        numberInput(rule.maximum_price, { className: "input", placeholder: TEXT.noCap, "aria-label": TEXT.modelName + " " + rule.label }, (value) => { rule.maximum_price = value; }),
+        element("span", { className: "currency", text: "\u20bd" }),
+      ]),
+      element("button", { type: "button", className: "remove", "aria-label": TEXT.removeModel, text: "\u00d7",
+        onclick: () => { profile.price_rules.splice(index, 1); render(); refreshSaveState(); } }),
+    ]),
+    element("div", { className: "pattern-line" }, [
+      element("button", { type: "button", className: "text-button small", text: patternOpen ? TEXT.patternHide : TEXT.pattern,
+        onclick: () => { if (patternOpen) openPatterns.delete(rule); else openPatterns.add(rule); render(); } }),
+    ]),
+    patternOpen ? element("div", { className: "pattern-line" }, [patternInput]) : null,
+  ]);
+}
+
+function renderFilters() {
+  const nodes = [];
+  const names = Object.keys(draft.profiles);
+  if (!names.includes(currentProfile)) {
+    const firstUsed = draft.searches.map((search) => search.profile).find((name) => names.includes(name));
+    currentProfile = firstUsed || names.find((name) => name !== "default") || names[0];
+  }
+  nodes.push(element("div", { className: "chips", role: "group" }, names.map((name) => element("button", {
+    type: "button", className: "chip", "aria-pressed": String(name === currentProfile && !creatingProfile), text: name,
+    onclick: () => { currentProfile = name; creatingProfile = false; render(); },
+  })).concat([element("button", { type: "button", className: "chip new", text: "+ " + TEXT.newProfile,
+    onclick: () => { creatingProfile = true; render(); } })])));
+
+  if (creatingProfile) {
+    let newName = "";
+    const nameInput = textInput("", { placeholder: TEXT.newSearchName, "aria-label": TEXT.newProfile }, (value) => { newName = value.trim(); });
+    nodes.push(groupTitle(TEXT.newProfile));
+    nodes.push(element("div", { className: "group" }, [
+      element("div", { className: "row" }, [nameInput, hint(TEXT.newProfileHint)]),
+      element("div", { className: "row row-line" }, [
+        element("button", { type: "button", className: "text-button", text: TEXT.create, onclick: () => {
+          if (!NAME_PATTERN.test(newName) || newName in draft.profiles) { showNotice(TEXT.errors.profileName, "error"); return; }
+          const copy = clone(draft.profiles[currentProfile]);
+          draft.profiles[newName] = copy;
+          currentProfile = newName;
+          creatingProfile = false;
+          render();
+          refreshSaveState();
+        } }),
+        element("button", { type: "button", className: "text-button", text: TEXT.cancel, onclick: () => { creatingProfile = false; render(); } }),
+      ]),
+    ]));
+    setTimeout(() => nameInput.focus(), 0);
+    return nodes;
+  }
+
+  const profile = draft.profiles[currentProfile];
+  nodes.push(groupTitle(TEXT.modelLimits));
+  nodes.push(element("div", { className: "hint group-hint above", text: TEXT.modelLimitsHint }));
+  nodes.push(element("div", { className: "group" }, profile.price_rules.map((rule, index) => renderRule(profile, rule, index)).concat([
+    element("div", { className: "add-row" }, [element("button", { type: "button", className: "text-button", text: "+ " + TEXT.addModel, onclick: () => {
+      const rule = { label: "", pattern: "", maximum_price: "" };
+      autoPatternRules.add(rule);
+      profile.price_rules.push(rule);
+      render();
+      const inputs = document.querySelectorAll(".tag input");
+      if (inputs.length) inputs[inputs.length - 1].focus();
+    } })]),
+    element("div", { className: "row row-line" }, [
+      element("div", {}, [element("div", { className: "label", text: TEXT.onlyListedModels }), hint(TEXT.onlyListedModelsHint)]),
+      switchControl(profile.require_price_rule_match, TEXT.onlyListedModels, (value) => { profile.require_price_rule_match = value; }),
+    ]),
+  ])));
+
+  nodes.push(groupTitle(TEXT.stopWords));
+  nodes.push(element("div", { className: "group" }, [element("div", { className: "row" }, [
+    textArea(profile.exclude_phrases.join("\n"), "", (value) => { profile.exclude_phrases = linesOf(value); }),
+    hint(TEXT.stopWordsHint),
+  ])]));
+
+  nodes.push(groupTitle(TEXT.requiredWords));
+  nodes.push(element("div", { className: "group" }, [element("div", { className: "row" }, [
+    textArea(profile.include_phrases.join("\n"), "", (value) => { profile.include_phrases = linesOf(value); }),
+    hint(TEXT.requiredWordsHint),
+  ])]));
+
+  nodes.push(groupTitle(TEXT.flags));
+  nodes.push(element("div", { className: "group" }, profile.flag_list.map((flag, index) => element("div", { className: "row" }, [
+    element("div", { className: "row-line", style: "margin-bottom: 7px" }, [
+      textInput(flag.name, { className: "input name-input", placeholder: TEXT.flagName, "aria-label": TEXT.flagName }, (value) => { flag.name = value; }),
+      element("button", { type: "button", className: "remove", "aria-label": TEXT.removeFlag, text: "\u00d7",
+        onclick: () => { profile.flag_list.splice(index, 1); render(); refreshSaveState(); } }),
+    ]),
+    textArea(flag.phrases.join("\n"), "", (value) => { flag.phrases = linesOf(value); }),
+  ])).concat([element("div", { className: "add-row" }, [element("button", { type: "button", className: "text-button", text: "+ " + TEXT.addFlag,
+    onclick: () => { profile.flag_list.push({ name: "", phrases: [] }); render(); } })])])));
+  nodes.push(groupHint(TEXT.flagsHint));
+
+  nodes.push(groupTitle(TEXT.more));
+  nodes.push(element("div", { className: "group" }, ["skip_reserved", "hide_expensive", "hide_cheap"].map((switchName) => element("div", { className: "row row-line" }, [
+    element("div", {}, [element("div", { className: "label", text: TEXT.switches[switchName][0] }), hint(TEXT.switches[switchName][1])]),
+    switchControl(profile[switchName], TEXT.switches[switchName][0], (value) => { profile[switchName] = value; }),
+  ]))));
+
+  const users = draft.searches.filter((search) => search.profile === currentProfile).map((search) => search.name || "?");
+  const deleteBlocked = currentProfile === "default" ? TEXT.defaultProfileKept : users.length ? TEXT.profileInUse(users.join(", ")) : "";
+  nodes.push(element("div", { className: "group", style: "margin-top: 22px" }, [element("div", { className: "row" }, [
+    element("button", { type: "button", className: "text-button danger", text: TEXT.deleteProfile, disabled: Boolean(deleteBlocked),
+      onclick: () => { delete draft.profiles[currentProfile]; currentProfile = ""; render(); refreshSaveState(); } }),
+    hint(deleteBlocked),
+  ])]));
+  return nodes;
+}
+
+function generalControl(key, label) {
+  const type = original.general_types[key];
+  const choices = (original.general_choices || {})[key];
+  if (type === "bool") return switchControl(draft.general[key], label, (value) => { draft.general[key] = value; });
+  if (choices) {
+    const names = TEXT.choices[key] || {};
+    return element("select", { className: "select", style: "width: auto; max-width: 55%", "aria-label": label,
+      onchange: (event) => { draft.general[key] = event.target.value; refreshSaveState(); } },
+    choices.map((value) => element("option", { value, text: names[value] || value, selected: value === draft.general[key] })));
+  }
+  if (type === "text") return textInput(draft.general[key], { placeholder: "\u2014", "aria-label": label, style: "max-width: 55%" }, (value) => { draft.general[key] = value; });
+  return textInput(draft.general[key], { className: "input short", inputmode: type === "float" ? "decimal" : "numeric", "aria-label": label },
+    (value, input) => { draft.general[key] = value; input.classList.toggle("invalid", typedGeneral(key, value) === null); });
+}
+
+function generalRow(key, label, note, details) {
+  const open = openDetails.has(key);
+  return element("div", { className: "row" }, [
+    element("div", { className: "row-line" }, [element("div", {}, [element("div", { className: "label", text: label }), hint(note)]), generalControl(key, label)]),
+    details ? element("button", { type: "button", className: "text-button small more-link", "aria-expanded": String(open),
+      text: open ? TEXT.detailsHide : TEXT.details,
+      onclick: () => { if (open) openDetails.delete(key); else openDetails.add(key); render(); } }) : null,
+    details && open ? element("div", { className: "details", text: details }) : null,
+  ]);
+}
+
+function renderGeneral() {
+  const nodes = [];
+  const known = new Set(HIDDEN_GENERAL_KEYS);
+  for (const group of SETTING_GROUPS) for (const [key] of group.keys) known.add(key);
+  const groups = SETTING_GROUPS.map((group) => ({ title: group.title, hint: group.hint, keys: group.keys.filter(([key]) => key in draft.general) }));
+  const others = Object.keys(draft.general).filter((key) => !known.has(key));
+  if (others.length) groups.push({ title: "\u041f\u0440\u043e\u0447\u0435\u0435", keys: others.map((key) => [key, key, "", ""]) });
+  for (const group of groups) {
+    if (!group.keys.length) continue;
+    nodes.push(groupTitle(group.title));
+    if (group.hint) nodes.push(element("div", { className: "hint group-hint above", text: group.hint }));
+    nodes.push(element("div", { className: "group" }, group.keys.map(([key, label, note, details]) => generalRow(key, label, note, details))));
+  }
+  return nodes;
+}
+
+function renderLook() {
+  return [
+    groupTitle(TEXT.palette),
+    element("div", { className: "group", role: "radiogroup" }, PALETTES.map((palette) => {
+      const colors = palette.colors || { bg: "var(--tg-theme-secondary-bg-color, #efeff4)", surface: "var(--tg-theme-bg-color, #fff)",
+        accent: "var(--tg-theme-button-color, #2f7cf6)", tag: "var(--tg-theme-link-color, #2f7cf6)" };
+      return element("button", { type: "button", className: "palette-row", role: "radio", "aria-checked": String(palette.id === currentPalette),
+        onclick: () => { applyPalette(palette.id); rememberPalette(palette.id); render(); } }, [
+        element("span", { className: "swatches", "aria-hidden": "true" }, [colors.bg, colors.surface, colors.accent, colors.tag].map((color) => element("i", { style: "background:" + color }))),
+        element("span", { className: "palette-text" }, [element("div", { className: "label", text: palette.name }), hint(palette.hint)]),
+        element("span", { className: "check", text: "\u2713" }),
+      ]);
+    })),
+    groupHint(TEXT.paletteHint),
+  ];
+}
+
+function render() {
+  const content = document.getElementById("content");
+  if (!original) return;
+  const builders = { searches: renderSearches, filters: renderFilters, general: renderGeneral, look: renderLook };
+  content.replaceChildren(...builders[currentTab]().filter(Boolean));
+}
+
+function renderEmpty(title, details) {
+  document.getElementById("tabs").hidden = true;
+  document.getElementById("content").replaceChildren(element("div", { className: "empty" }, [element("strong", { text: title }), details || ""]));
+}
+
+// ----- start -------------------------------------------------------------------------
+
+async function start() {
+  if (webApp) {
+    try { webApp.ready(); webApp.expand(); } catch (error) { /* outside Telegram */ }
+    if (inTelegram) webApp.MainButton.onClick(save);
+  }
+  document.getElementById("fallback-save-button").addEventListener("click", save);
+  loadPalette();
+  const encoded = hashData();
+  if (!encoded) { renderEmpty(TEXT.noData, TEXT.noDataHint); return; }
+  if (typeof DecompressionStream === "undefined" || typeof CompressionStream === "undefined") { renderEmpty(TEXT.unsupported); return; }
+  try {
+    original = JSON.parse(await inflateText(base64UrlToBytes(encoded)));
+    if (original.format !== 1) throw new Error("format");
+    draft = toDraft(original);
+  } catch (error) {
+    renderEmpty(TEXT.brokenData);
+    return;
+  }
+  renderTabs();
+  render();
+  refreshSaveState();
+}
+
+start();
+</script>
+</body>
+</html>
